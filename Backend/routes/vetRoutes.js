@@ -1,12 +1,9 @@
-import express from "express";
-import { authenticate, authorize } from "../middleware/authmiddleware.js";  // Import middleware
-import { registerVet } from "../controllers/vetController.js";  // Import vet controller
+import express from 'express';
+import { registerVet } from '../controllers/vetController.js'; // Import register controller
 
-const router = express.Router();
+const vetRouter = express.Router();
 
-// Register Vet
-router.post("/api/vets/register", registerVet);
+// Register Vet Route
+vetRouter.post("/", registerVet);
 
-// More routes for vet-specific functionality
-
-export default router;
+export default vetRouter; // Correct export name

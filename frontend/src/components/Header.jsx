@@ -1,9 +1,11 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const Header = () => {
+  const navigate = useNavigate(); // Hook for navigation
+
   return (
     <div className="relative flex flex-col md:flex-row flex-wrap w-full h-[500px] border-[1px] border-solid border-black">
-
       {/* --------- Background Image --------- */}
       <div
         className="absolute inset-0 bg-cover bg-center"
@@ -24,14 +26,14 @@ const Header = () => {
             schedule your appointment hassle-free.
           </p>
         </div>
-        <a
-          href="#speciality"
+        {/* Button to navigate to VetPage */}
+        <button
+          onClick={() => navigate('/vets')}
           className="flex items-center gap-2 bg-white px-8 py-3 rounded-full text-blue-600 text-sm m-auto md:m-0 hover:scale-105 transition-all duration-300"
         >
           Book appointment <img className="w-3" src="rightarrow.png" alt="Arrow" />
-        </a>
+        </button>
       </div>
-
     </div>
   );
 };

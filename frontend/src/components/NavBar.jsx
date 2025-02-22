@@ -6,7 +6,7 @@ const Navbar = () => {
   const [showMenu, setShowMenu] = useState(false);
 
   return (
-    <nav className="flex items-center justify-between py-4 px-6 bg-blue-800 text-white shadow-md">
+    <nav className="fixed top-0 w-full z-50 flex items-center justify-between py-4 px-6 bg-blue-800 text-white shadow-md">
       {/* Left Side - Logo & Brand Name */}
       <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
         <img src="Logo.png" alt="Logo" className="w-10 h-10 rounded-full" />

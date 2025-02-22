@@ -5,10 +5,9 @@ const VetSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   phoneNumber: { type: String, required: true },
   password: { type: String, required: true },
-  role: { type: String, default: "Vet" }, 
-  specialization: { type: String }, // Optional field for vets
+  role: { type: String, default: "Vet" },
 });
 
-const Veterinarian = mongoose.model("Veterinarian", VetSchema, "veterinarians");
+const Vet = mongoose.model("Vet", VetSchema, "veterinarians");
 
-export default Veterinarian;
+export default Vet; // ✅ Use ES module export

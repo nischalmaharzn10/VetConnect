@@ -25,21 +25,31 @@ const RegisterPage = () => {
     setError(""); // Clear previous errors
 
     try {
-      // Only call the User API if "User" is selected
+      let response;
+    
       if (role === "User") {
-        const response = await axios.post("http://localhost:5555/api/users", formData, {
+        response = await axios.post("http://localhost:5555/api/users", formData, {
           headers: {
             "Content-Type": "application/json" // Ensure data is sent as JSON
           }
         });
-        console.log("User registered successfully:", response.data);
-        alert("Registration successful!");
+      } else if (role === "Vet") {
+        response = await axios.post("http://localhost:5555/api/vets", formData, {
+          headers: {
+            "Content-Type": "application/json"
+          }
+        });
       } else {
-        alert("Please select 'User' for this registration form.");
+        alert("Please select a valid role (User or Vet).");
+        return;
       }
+    
+      console.log(`${role} registered successfully:`, response.data);
+      alert("Registration successful!");
     } catch (err) {
       setError("Registration failed. Please try again.");
       console.error("Error during registration:", err.response ? err.response.data : err);
+      
       if (err.response) {
         // Show specific error from backend
         setError(err.response.data.message || "Registration failed. Please try again.");
@@ -47,6 +57,7 @@ const RegisterPage = () => {
     } finally {
       setLoading(false);
     }
+    
   };
 
   return (
@@ -123,18 +134,7 @@ const RegisterPage = () => {
               />
               <label htmlFor="roleVet" className="text-black">Vet</label>
             </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="radio"
-                id="roleAdmin"
-                name="role"
-                value="Admin"
-                checked={role === "Admin"}
-                onChange={(e) => setRole(e.target.value)}
-                className="text-black"
-              />
-              <label htmlFor="roleAdmin" className="text-black">Admin</label>
-            </div>
+
           </div>
         </div>
 
