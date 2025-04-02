@@ -1,9 +1,10 @@
 import express from 'express';
-import { registerVet } from '../controllers/vetController.js'; // Import register controller
+import { registerVet, getVets, getVetById } from '../controllers/vetController.js';
 
 const vetRouter = express.Router();
 
-// Register Vet Route
 vetRouter.post("/", registerVet);
+vetRouter.get("/", getVets);  // Fetch all vets
+vetRouter.get("/:id", getVetById);  // Fetch a single vet by ID
 
-export default vetRouter; // Correct export name
+export default vetRouter;

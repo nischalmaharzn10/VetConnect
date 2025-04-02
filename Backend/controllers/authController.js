@@ -1,40 +1,75 @@
-const User = require("../models/User");
-const Vet = require("../models/Veterinarian");
-const Admin = require("../models/Admin");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
+import Vet from "../models/Veterinarian.js";
+import Admin from "../models/Admin.js";
 
-exports.login = async (req, res) => {
-  const { email, password } = req.body;
+// ------------------ LOGIN FUNCTION ------------------
+export const login = async (req, res) => {
+  const { email, password, role } = req.body;
+  console.log("🔵 Login Attempt - Email:", email, "Role:", role);
 
   try {
-    let user = await User.findOne({ email });
-    let role = "User";
+    let user;
 
-    if (!user) {
+    // Role-based user fetching
+    if (role === "user") {
+      console.log("🟢 Searching for user...");
+      user = await User.findOne({ email });
+    } else if (role === "vet") {
+      console.log("🟢 Searching for vet...");
       user = await Vet.findOne({ email });
-      role = "Vet";
-    }
-    if (!user) {
+    } else if (role === "admin") {
+      console.log("🟢 Searching for admin...");
       user = await Admin.findOne({ email });
-      role = "Admin";
+    } else {
+      console.log("🔴 Invalid Role:", role);
+      return res.status(400).json({ message: "Invalid role. Please select a valid role." });
     }
+
+    // Check if user exists
     if (!user) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      console.log("🔴 User Not Found - Email:", email);
+      return res.status(401).json({ message: "Invalid email or password" });
     }
 
+    console.log("✅ User Found:", user.email);
+
+    // Validate password
+    if (!user.password || typeof user.password !== "string") {
+      console.log("🔴 Password is missing or not a string in the database");
+      return res.status(500).json({ message: "Server error: Password issue" });
+    }
+
+    // Compare the password from login request with the stored hashed password
     const isMatch = await bcrypt.compare(password, user.password);
+    console.log("🔵 Password Match Status:", isMatch);
+
     if (!isMatch) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      console.log("🔴 Password Mismatch - Email:", email);
+      return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    const token = jwt.sign({ id: user._id, role }, process.env.JWT_SECRET, {
-      expiresIn: "1d",
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role: user.role },
+      process.env.JWT_SECRET, // Use the environment variable for JWT_SECRET
+      { expiresIn: "1h" }
+    );
+
+    console.log("🟢 Login Successful - Email:", email, "Role:", role);
+
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
     });
-
-    res.json({ token, role });
-
   } catch (error) {
-    res.status(500).json({ message: "Server error", error });
+    console.error("❌ Login Error:", error);
+    res.status(500).json({ message: "Server error. Please try again later." });
   }
 };

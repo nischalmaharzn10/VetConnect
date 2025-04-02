@@ -1,21 +1,32 @@
-import express from "express";
-import mongoose from "mongoose";
-import cors from "cors"; // Import CORS
-import userRoutes from "./routes/userRoutes.js";
-import adminRoutes from "./routes/adminroutes.js"; // Ensure correct case
-import vetRoutes from "./routes/vetRoutes.js";
-import { PORT, mongoDBURL, JWT_SECRET } from './config.js';  // Corrected import name
+import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
+
+import userRouter from './routes/userRoutes.js';
+import vetRouter from './routes/vetRoutes.js';
+import authRouter from './routes/authroutes.js';
+import appointmentRouter from './routes/appointmentRoutes.js';
+import { PORT, mongoDBURL } from './config.js';
+import petRouter from "./routes/petRoutes.js";
 
 const app = express();
 
+// Increase payload limit (Adjust as needed)
+app.use(express.json({ limit: "10mb" }));  // Set JSON request size limit
+app.use(express.urlencoded({ limit: "10mb", extended: true }));  // Set URL-encoded request size limit
+app.use(cors());
+
 // Middleware
-app.use(cors()); // Allow frontend to connect
+app.use(cors());
 app.use(express.json());
 
 // Use routes
-app.use("/api/users", userRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/vets", vetRoutes);
+app.use("/api/users", userRouter);
+app.use("/api/vets", vetRouter);
+app.use("/api/auth", authRouter);  
+app.use("/api/appointments", appointmentRouter);  
+app.use("/api/pets", petRouter);
+
 
 // Home Route
 app.get("/", (req, res) => {
@@ -24,21 +35,14 @@ app.get("/", (req, res) => {
 
 // Connect to MongoDB and start the server
 mongoose
-  .connect(mongoDBURL)  // Use mongoDBURL instead of mongoDBRUL
+  .connect(mongoDBURL)
   .then(() => {
-    console.log("MongoDB Connected...");
+    console.log("✅ MongoDB Connected...");
+    
     app.listen(PORT, () => {
-      console.log(`App is listening on port: ${PORT}`);
+      console.log(`🚀 Server is running on port: ${PORT}`);
     });
   })
   .catch((err) => {
-    console.error("MongoDB connection error:", err);
+    console.error("❌ MongoDB connection error:", err);
   });
-
-export default {
-  server: {
-    proxy: {
-      '/api': 'http://localhost:5555', // Change to your backend port
-    },
-  },
-};

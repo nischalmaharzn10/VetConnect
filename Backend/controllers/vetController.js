@@ -11,7 +11,7 @@ export const registerVet = async (req, res) => {
     try {
         console.log("Received Data:", req.body); // Debugging request body
 
-        const { name, email, phoneNumber, password, specialization } = req.body;
+        const { name, email, phoneNumber, password } = req.body;
 
         // ✅ Check if all required fields are provided
         if (!name || !email || !password || !phoneNumber) {
@@ -46,19 +46,11 @@ export const registerVet = async (req, res) => {
             name,
             email,
             phoneNumber,
-            password: hashedPassword,
+            password: hashedPassword
         });
 
-        // ✅ Save new vet to database and handle potential errors
-        let savedVet;
-        try {
-            console.log("Saving Veterinarian to Database...");
-            savedVet = await newVet.save();
-            console.log("Veterinarian Saved Successfully:", savedVet);
-        } catch (error) {
-            console.error("Error Saving Veterinarian:", error);
-            return res.status(500).json({ success: false, message: "Database Error", error: error.message });
-        }
+        // ✅ Save new vet to database
+        const savedVet = await newVet.save();
         
         // ✅ Generate JWT token
         const token = jwt.sign({ id: savedVet._id }, process.env.JWT_SECRET, { expiresIn: "1d" });
@@ -69,5 +61,28 @@ export const registerVet = async (req, res) => {
     } catch (error) {
         console.error("Server Error:", error);
         res.status(500).json({ success: false, message: "Server error", error: error.message });
+    }
+};
+
+// ✅ Get all veterinarians
+export const getVets = async (req, res) => {
+    try {
+        const vets = await Vet.find().select("-password"); // Exclude password
+        res.status(200).json(vets);
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Error fetching veterinarians", error: error.message });
+    }
+};
+
+// ✅ Get veterinarian by ID
+export const getVetById = async (req, res) => {
+    try {
+        const vet = await Vet.findById(req.params.id).select("-password");
+        if (!vet) {
+            return res.status(404).json({ success: false, message: "Veterinarian not found" });
+        }
+        res.status(200).json(vet);
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Error fetching veterinarian", error: error.message });
     }
 };

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs"; // Import bcrypt for password hashing
 
 const VetSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -8,6 +9,14 @@ const VetSchema = new mongoose.Schema({
   role: { type: String, default: "Vet" },
 });
 
+// Pre-save middleware to hash the password before saving the vet
+VetSchema.pre("save", async function (next) {
+  if (this.isModified("password")) {
+    this.password = await bcrypt.hash(this.password, 10); // Hash the password
+  }
+  next();
+});
+
 const Vet = mongoose.model("Vet", VetSchema, "veterinarians");
 
-export default Vet; // ✅ Use ES module export
+export default Vet;

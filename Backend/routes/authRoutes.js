@@ -1,7 +1,9 @@
-const express = require("express");
-const { login } = require("../controllers/authController");
-const router = express.Router();
+import express from 'express';
+import { login } from '../controllers/authController.js';
 
-router.post("/login", login);
+const authRouter = express.Router(); // ✅ Changed from `router` to `authRouter`
 
-module.exports = router;
+// Login route
+authRouter.post('/login', login); // ✅ Use `authRouter` instead of `router`
+
+export default authRouter; // ✅ Export it with the new name

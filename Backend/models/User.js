@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
 const UserSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -8,6 +9,13 @@ const UserSchema = new mongoose.Schema({
   role: { type: String, default: "User" },
 });
 
-const User = mongoose.model("User", UserSchema, "users");
+// Hash the password before saving (Only if it's not already hashed)
+UserSchema.pre("save", async function (next) {
+  if (this.isModified("password") && !this.password.startsWith("$2a$")) {
+    this.password = await bcrypt.hash(this.password, 10);
+  }
+  next();
+});
 
-export default User;  // ✅ Use ES module export
+const User = mongoose.model("User", UserSchema, "users");
+export default User;
