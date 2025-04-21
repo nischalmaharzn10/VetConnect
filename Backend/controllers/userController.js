@@ -61,7 +61,7 @@ export const registerUser = async (req, res) => {
         }
         
         // ✅ Generate JWT token
-        const token = jwt.sign({ id: savedUser._id }, process.env.JWT_SECRET, { expiresIn: "1d" });
+        const token = jwt.sign({ id: savedUser._id }, process.env.JWT_SECRET, { expiresIn: "3d" });
 
         // ✅ Respond with success message and JWT token
         res.status(201).json({ success: true, message: "User registered successfully", token });
@@ -71,3 +71,4 @@ export const registerUser = async (req, res) => {
         res.status(500).json({ success: false, message: "Server error", error: error.message });
     }
 };
+

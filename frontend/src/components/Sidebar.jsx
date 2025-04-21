@@ -37,6 +37,24 @@ const Sidebar = () => {
         </NavLink>
 
         <NavLink
+          to="/client/history"
+          className={({ isActive }) =>
+            `px-4 py-2 rounded-md transition ${isActive ? "bg-blue-600" : "hover:bg-blue-700"}`
+          }
+        >
+          Appointment History
+        </NavLink>
+
+        <NavLink
+          to="/client/video-call/:appointmentId"
+          className={({ isActive }) =>
+            `px-4 py-2 rounded-md transition ${isActive ? "bg-blue-600" : "hover:bg-blue-700"}`
+          }
+        >
+          Consultation Page
+        </NavLink>
+
+        <NavLink
           to="/settings"
           className={({ isActive }) =>
             `px-4 py-2 rounded-md transition ${isActive ? "bg-blue-600" : "hover:bg-blue-700"}`

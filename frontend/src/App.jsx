@@ -1,6 +1,5 @@
-// App.jsx
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import Navbar from './components/NavBar';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
@@ -12,11 +11,21 @@ import AppointmentPage from './pages/AppointmentPage';
 import UserDashboard from './pages/UserDashboard';
 import VetDashboard from './pages/VetDashboard';
 import PetsPage from './pages/PetsPage';
-
+import PetDetails from './pages/PetDetails';
+import MyAppointments from './pages/MyAppointments';
+import VetAppointments from './pages/VetAppointments';
+import OngoingAppointment from './pages/OngoingAppointment';
+import PrescriptionDetail from './pages/PrescriptionDetail';
+import CompletedAppointmentPage from './pages/CompletedAppointmentPage';
+import VetAppHistory from './pages/VetAppHistory';
+import ClientAppHistory from './pages/ClientAppHistory';
+import ClientPrescriptionForm from './pages/ClientAppComplete';
+import VideoCall from './pages/VideoCall';
+import ClientVideoCall from './pages/ClientVideoCall';
 
 const App = () => {
   return (
-    <Router>
+    <>
       <Navbar />
       <div className="pt-[64px] text-black">
         <Routes>
@@ -28,11 +37,23 @@ const App = () => {
           <Route path="/appointment/:id" element={<AppointmentPage />} />
           <Route path="/user-dashboard" element={<UserDashboard />} />
           <Route path="/vet-dashboard" element={<VetDashboard />} />
-          <Route path="/mypets" element={<PetsPage/>} />
+          <Route path="/mypets" element={<PetsPage />} />
+          <Route path="/pet-details" element={<PetDetails />} />
+          <Route path="/appointments" element={<MyAppointments />} />
+          <Route path="/vet-appointments" element={<VetAppointments />} />
+          <Route path="/prescription-form/:appointmentId" element={<OngoingAppointment />} />
+          <Route path="/prescription/:appointmentId" element={<PrescriptionDetail />} />
+          <Route path="/completed-appointment/:appointmentId" element={<CompletedAppointmentPage />} />
+          <Route path="/vet/history" element={<VetAppHistory />} />
+          <Route path="/client/history" element={<ClientAppHistory />} />
+          <Route path="/client/appointment-form/:appointmentId" element={<ClientPrescriptionForm />} />
+          <Route path="/video-call/:appointmentId" element={<VideoCall />} />
+          <Route path="/client/video-call/:appointmentId" element={<ClientVideoCall />} />
         </Routes>
       </div>
       <Footer />
-    </Router>
+    </>
   );
 };
+
 export default App;

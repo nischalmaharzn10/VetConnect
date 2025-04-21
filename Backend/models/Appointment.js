@@ -11,6 +11,11 @@ const appointmentSchema = new mongoose.Schema({
     ref: 'Vet',
     required: true,
   },
+  petId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Pet',
+    required: true,
+  },
   appointmentDate: {
     type: Date,  
     required: true,
@@ -19,12 +24,21 @@ const appointmentSchema = new mongoose.Schema({
     type: String,  
     required: true,
   },
-  // status: {
-  //   type: String,
-  //   enum: ['pending', 'scheduled', 'cancelled'],
-  //   default: 'pending',
-  // },
+  
+  // Optional status field
+  status: {
+    type: String,
+    enum: ['pending', 'scheduled', 'completed', 'cancelled'],
+    default: 'pending',
+  },
+
+  appointmentType: {
+    type: String,
+    enum: ['clinic visit', 'online consultation'],
+    default: 'clinic visit'
+  }
+  
 }, { timestamps: true });
 
-const Appointment = mongoose.model('Appointment', appointmentSchema,'appointments');
+const Appointment = mongoose.model('Appointment', appointmentSchema, 'appointments');
 export default Appointment;

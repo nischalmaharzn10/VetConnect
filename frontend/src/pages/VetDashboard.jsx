@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
+import VetSidebar from "../components/VetSidebar";
 
 const VetDashboard = () => {
   const navigate = useNavigate();
@@ -18,7 +19,7 @@ const VetDashboard = () => {
   return vet ? (
     <div className="flex h-screen">
       {/* Sidebar */}
-      <Sidebar />
+      <VetSidebar/>
 
       {/* Main Content */}
       <div className="p-6 flex-1">

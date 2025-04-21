@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../components/Sidebar"; // Import Sidebar component
+import User from '../../../Backend/models/User';
 
 const VetPage = () => {
   const [vets, setVets] = useState([]);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,7 +25,7 @@ const VetPage = () => {
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
-      <Sidebar />
+      <Sidebar/>
 
       {/* Main Content */}
       <div className="container mx-auto p-6 flex-1">

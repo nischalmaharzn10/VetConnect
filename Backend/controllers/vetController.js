@@ -53,7 +53,7 @@ export const registerVet = async (req, res) => {
         const savedVet = await newVet.save();
         
         // ✅ Generate JWT token
-        const token = jwt.sign({ id: savedVet._id }, process.env.JWT_SECRET, { expiresIn: "1d" });
+        const token = jwt.sign({ id: savedVet._id }, process.env.JWT_SECRET, { expiresIn: "3d" });
 
         // ✅ Respond with success message and JWT token
         res.status(201).json({ success: true, message: "Veterinarian registered successfully", token });

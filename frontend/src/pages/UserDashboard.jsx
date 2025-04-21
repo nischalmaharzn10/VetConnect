@@ -18,7 +18,7 @@ const UserDashboard = () => {
   return user ? (
     <div className="flex h-screen">
       {/* Sidebar */}
-      <Sidebar />
+      <Sidebar/>
 
       {/* Main Content */}
       <div className="p-6 flex-1">
