@@ -53,13 +53,6 @@ const OngoingAppointment = () => {
     try {
       setSubmitting(true);
   
-      // 🚀 Logging: Prescription input
-      console.log("📋 Prescription Input:");
-      console.log("Symptoms:", symptoms);
-      console.log("Medication:", medication);
-      console.log("Dosage:", dosage);
-      console.log("Instructions:", instructions);
-  
       // Step 1: Update appointment status
       console.log("📤 Updating appointment status...");
       const statusPayload = {

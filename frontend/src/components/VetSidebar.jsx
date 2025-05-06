@@ -45,23 +45,6 @@ const VetSidebar = () => {
           Online consultation
         </NavLink>
 
-        {/* <NavLink
-          to="/mypets"
-          className={({ isActive }) =>
-            `px-4 py-2 rounded-md transition ${isActive ? "bg-blue-600" : "hover:bg-blue-700"}`
-          }
-        >
-          My Pets
-        </NavLink> */}
-
-        {/* <NavLink
-          to="/settings"
-          className={({ isActive }) =>
-            `px-4 py-2 rounded-md transition ${isActive ? "bg-blue-600" : "hover:bg-blue-700"}`
-          }
-        >
-          Settings
-        </NavLink> */}
       </nav>
     </div>
   );

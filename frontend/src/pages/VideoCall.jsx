@@ -1,254 +1,194 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
-import io from "socket.io-client";
+// VideoCall.jsx (Vet side)
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import io from 'socket.io-client';
 
-// Set up the server URL for Socket.IO
-const socket = io("http://localhost:5555"); // Update with your deployed server URL if needed
+const socket = io('http://localhost:5555');
 
-const VideoCall = () => {
+export default function VideoCall() {
   const { appointmentId } = useParams();
   const navigate = useNavigate();
 
-  const [appointment, setAppointment] = useState(null);
-  const [prescription, setPrescription] = useState({
-    symptoms: "",
-    medication: "",
-    dosage: "",
-    instructions: "",
-  });
+  const [appt, setAppt] = useState(null);
+  const [pres, setPres] = useState({ symptoms: '', medication: '', dosage: '', instructions: '' });
+  const [pc, setPc] = useState(null);
+  const [started, setStarted] = useState(false);
 
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [stream, setStream] = useState(null);
-  const [peerConnection, setPeerConnection] = useState(null);
-  const [callAccepted, setCallAccepted] = useState(false);
+  const userVid = useRef();
+  const peerVid = useRef();
 
-  const userVideoRef = useRef(null);
-  const peerVideoRef = useRef(null);
-
+  // Load appointment
   useEffect(() => {
-    const fetchAppointment = async () => {
-      try {
-        const res = await axios.get(`/api/appointments/${appointmentId}`);
-        setAppointment(res.data.appointment);
-      } catch (err) {
-        console.error("❌ Error fetching appointment:", err.response?.data || err.message);
-        alert("Failed to load appointment details.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAppointment();
-    startWebRTC();
-
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-      }
-      if (peerConnection) {
-        peerConnection.close();
-      }
-    };
+    axios.get(`/api/appointments/${appointmentId}`)
+      .then(res => {
+        console.log('📄 Loaded appointment:', res.data.appointment);
+        setAppt(res.data.appointment);
+      })
+      .catch(err => {
+        console.error('❌ Failed to load appointment:', err);
+        alert('Failed to load appointment');
+      });
   }, [appointmentId]);
 
-  const startWebRTC = async () => {
-    try {
-      const userStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
-
-      setStream(userStream);
-      if (userVideoRef.current) {
-        userVideoRef.current.srcObject = userStream;
-      }
-
-      const peer = new RTCPeerConnection();
-      setPeerConnection(peer);
-
-      userStream.getTracks().forEach((track) => peer.addTrack(track, userStream));
-
-      peer.onicecandidate = (event) => {
-        if (event.candidate) {
-          socket.emit("send-ice-candidate", event.candidate, appointmentId);
-        }
-      };
-
-      peer.ontrack = (event) => {
-        if (peerVideoRef.current) {
-          peerVideoRef.current.srcObject = event.streams[0];
-        }
-      };
-
-      socket.emit("join-room", appointmentId);
-    } catch (error) {
-      console.error("❌ Error setting up WebRTC:", error);
-    }
-  };
-
+  // Listen for user's acceptance
   useEffect(() => {
-    if (!peerConnection) return;
-
-    socket.on("receive-ice-candidate", (candidate) => {
-      peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-    });
-
-    socket.on("receive-offer", async (offer) => {
-      await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-      const answer = await peerConnection.createAnswer();
-      await peerConnection.setLocalDescription(answer);
-      socket.emit("send-answer", answer, appointmentId);
-    });
-
-    socket.on("receive-answer", async (answer) => {
-      await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+    socket.on('user-accepted-call', () => {
+      console.log('✅ User accepted call. Starting WebRTC...');
+      initWebRTC(true);
     });
 
     return () => {
-      socket.off("receive-ice-candidate");
-      socket.off("receive-offer");
-      socket.off("receive-answer");
-    };
-  }, [peerConnection]);
-
-  useEffect(() => {
-    socket.on("user-accepted-call", () => {
-      setCallAccepted(true);
-      startWebRTC(); // Start stream when user joins
-    });
-
-    return () => {
-      socket.off("user-accepted-call");
+      socket.off('user-accepted-call');
     };
   }, []);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setPrescription((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  // Setup peer connection listeners
+  useEffect(() => {
+    if (!pc) return;
+
+    socket.on('receive-answer', async answer => {
+      console.log('📩 Received answer:', answer);
+      await pc.setRemoteDescription(new RTCSessionDescription(answer));
+    });
+
+    socket.on("receive-ice-candidate", (candidate) => {
+      console.log("❄️ Received ICE candidate:", candidate);
+      pc.addIceCandidate(new RTCIceCandidate(candidate));
+    });
+
+    socket.on("receive-offer", async (offer) => {
+      console.log("📩 Received offer:", offer);
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      socket.emit("send-answer", answer, appointmentId);
+    });
+
+    return () => {
+      socket.off('receive-answer');
+      socket.off('receive-ice-candidate');
+      socket.off('receive-offer');
+    };
+  }, [pc]);
+
+  const initWebRTC = async (createOffer = false) => {
+    if (started) return;
+    setStarted(true);
+
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    userVid.current.srcObject = stream;
+
+    const peer = new RTCPeerConnection();
+    setPc(peer);
+
+    stream.getTracks().forEach(track => peer.addTrack(track, stream));
+
+    peer.onicecandidate = ({ candidate }) => {
+      if (candidate) {
+        console.log('📤 Sending ICE candidate:', candidate);
+        socket.emit('send-ice-candidate', candidate, appointmentId);
+      }
+    };
+
+    peer.ontrack = (event) => {
+      peerVid.current.srcObject = event.streams[0];
+    };
+
+    socket.emit('join-room', appointmentId);
+    console.log('🔗 Joined room:', appointmentId);
+
+    if (createOffer) {
+      const offer = await peer.createOffer();
+      await peer.setLocalDescription(offer);
+      console.log('📤 Sending offer:', offer);
+      socket.emit('send-offer', offer, appointmentId);
+    }
   };
 
-  const handleFinishAppointment = async () => {
-    const { medication, dosage, instructions, symptoms } = prescription;
-
-    if (!medication || !dosage || !instructions || !symptoms) {
-      alert("Please fill in all prescription fields.");
+  const invite = () => {
+    if (!appt?.userId?._id) {
+      console.warn('⚠️ User ID not found in appointment data');
       return;
     }
 
+    const payload = { userId: appt.userId._id, appointmentId };
+    console.log('📞 Inviting user:', payload);
+    socket.emit('invite-call', payload); // ✅ this matches your backend
+  };
+
+  const finish = async () => {
     try {
-      setSubmitting(true);
-
-      await axios.put(`/api/appointments/${appointmentId}/status`, {
-        appointmentId,
-        status: "completed",
-      });
-
+      await axios.put(`/api/appointments/${appointmentId}/status`, { status: 'completed' });
       await axios.put(`/api/appointments/${appointmentId}/prescription`, {
-        symptoms,
-        medication,
-        dosage,
-        instructions,
-        petId: appointment.petId?._id,
-        userId: appointment.userId?._id,
-        vetId: appointment.vetId?._id,
-        appointmentDate: appointment.appointmentDate,
-        scheduledTime: appointment.scheduledTime,
+        ...pres,
+        petId: appt.petId._id,
+        userId: appt.userId._id,
+        vetId: appt.vetId._id,
+        appointmentDate: appt.appointmentDate,
+        scheduledTime: appt.scheduledTime
       });
-
-      alert("✅ Appointment completed successfully.");
-      navigate("/vet-dashboard");
+      alert('✅ Appointment completed.');
+      navigate('/vet-dashboard');
     } catch (err) {
-      console.error("❌ Error finishing appointment:", err.response?.data || err.message);
-      alert("Failed to complete appointment.");
-    } finally {
-      setSubmitting(false);
+      console.error('❌ Error completing appointment:', err);
+      alert('Error completing appointment.');
     }
   };
 
+  if (!appt) return <p>Loading…</p>;
+
+
   return (
     <div className="flex min-h-screen">
-      {/* Left Side: Video Layout */}
-      <div className="flex flex-col w-2/3 gap-4 p-4">
-        <h2 className="text-2xl font-bold mb-2">Video Consultation</h2>
-
-        {/* Video containers */}
-        <div className="flex flex-col gap-4">
-          {/* Vet Screen */}
-          <div className="w-[720px] h-[405px] border border-gray-300 rounded-lg overflow-hidden bg-black text-white flex justify-center items-center relative">
-            <span className="absolute top-2 left-2 bg-gray-800 bg-opacity-70 px-2 py-1 text-sm rounded">Vet Screen</span>
-            <video
-              ref={userVideoRef}
-              autoPlay
-              muted
-              playsInline
-              className="w-full h-full object-cover"
-            />
+      <div className="w-2/3 p-4 space-y-4">
+        <h2 className="text-2xl">Video Consultation</h2>
+  
+        {/* Moved Invite Button Here */}
+        {!started && (
+          <button
+            onClick={invite}
+            className="w-48 h-14 bg-gradient-to-r from-blue-600 to-blue-800 text-white font-semibold text-lg rounded shadow hover:scale-105 transition-transform"
+            title="Send call invitation to pet owner"
+          >
+            📞 Invite Owner
+          </button>
+        )}
+  
+        <div className="space-y-4">
+          <div className="relative w-[720px] h-[405px] bg-black rounded overflow-hidden">
+            <video ref={userVid} autoPlay muted className="w-full h-full object-cover" />
           </div>
-
-          {/* Pet Owner Screen */}
-          <div className="w-[720px] h-[405px] border border-gray-300 rounded-lg overflow-hidden bg-black text-white flex justify-center items-center relative">
-            <span className="absolute top-2 left-2 bg-gray-800 bg-opacity-70 px-2 py-1 text-sm rounded">Pet Owner Screen</span>
-            <video
-              ref={peerVideoRef}
-              autoPlay
-              playsInline
-              className="w-full h-full object-cover"
-            />
-            {!callAccepted && (
-              <div className="absolute bottom-4 flex justify-center w-full">
-                <button
-                  onClick={() => socket.emit("invite-user", appointment?.userId?._id)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow"
-                >
-                  Invite Pet Owner
-                </button>
-              </div>
-            )}
+          <div className="w-[720px] h-[405px] bg-black rounded overflow-hidden">
+            <video ref={peerVid} autoPlay className="w-full h-full object-cover" />
           </div>
         </div>
       </div>
-
-      {/* Right Side: Prescription Form */}
-      <div className="w-1/3 bg-white p-6 shadow-lg rounded-lg overflow-y-auto">
-        <h2 className="text-lg font-semibold mb-4">Prescription</h2>
-        <div className="mb-4">
-          <h3 className="text-sm font-medium text-gray-700">Pet: {appointment?.petId?.name}</h3>
-          <h3 className="text-sm font-medium text-gray-700">Owner: {appointment?.userId?.name}</h3>
-          <h3 className="text-sm font-medium text-gray-700">Vet: {appointment?.vetId?.name}</h3>
-        </div>
-        <form className="space-y-4">
-          {["symptoms", "medication", "dosage", "instructions"].map((field) => (
-            <div key={field}>
-              <label className="block text-gray-700 font-medium mb-1 capitalize">{field}</label>
+  
+      <div className="w-1/3 p-6 bg-white overflow-auto">
+        <h2 className="text-lg mb-4">Prescription</h2>
+        <p>Pet: {appt.petId.name}</p>
+        <form className="space-y-3">
+          {['symptoms', 'medication', 'dosage', 'instructions'].map((f) => (
+            <div key={f}>
+              <label className="block">{f}</label>
               <textarea
-                name={field}
-                rows="4"
-                value={prescription[field]}
-                onChange={handleChange}
-                className="w-full border p-2 rounded resize-none text-sm bg-gray-50"
+                rows="3"
+                className="w-full border p-1"
+                value={pres[f]}
+                onChange={(e) => setPres({ ...pres, [f]: e.target.value })}
               />
             </div>
           ))}
         </form>
-        <div className="text-right mt-4">
-          <button
-            onClick={handleFinishAppointment}
-            className={`bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg shadow ${
-              submitting ? "opacity-50 cursor-not-allowed" : ""
-            }`}
-            disabled={submitting}
-          >
-            {submitting ? "Finishing..." : "Finish Appointment"}
-          </button>
-        </div>
+        <button
+          onClick={finish}
+          className="mt-4 bg-green-600 text-white px-4 py-2 rounded"
+        >
+          Finish
+        </button>
       </div>
     </div>
   );
-};
-
-export default VideoCall;
+  
+}

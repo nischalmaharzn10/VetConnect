@@ -14,17 +14,17 @@ export const addPet = async (req, res) => {
     }
 
     // Print the token (for debugging)
-    console.log("Received Token:", token);
-    console.log("JWT Secret:", process.env.JWT_SECRET);
+    // console.log("Received Token:", token);
+    // console.log("JWT Secret:", process.env.JWT_SECRET);
 
     // Verify the token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("Decoded Token:", decoded);
+    // console.log("Decoded Token:", decoded);
 
     // Access user data from the decoded token
     const userId = decoded.id;
 
-    console.log("user", userId); // Debugging log
+    // console.log("user", userId); // Debugging log
 
     // Extract data from request body
     const { name, image, breed, gender, color, description } = req.body;

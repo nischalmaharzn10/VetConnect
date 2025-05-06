@@ -13,26 +13,29 @@ const VetAppointments = () => {
 
   useEffect(() => {
     if (!vetId || !token) return;
-
+  
     axios
       .get(`/api/appointments/vets/${vetId}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then(async (res) => {
         const data = res.data.appointments;
+  
         const enriched = await fetchAdditionalDetails(data, token);
+  
         setAppointments(enriched);
       })
       .catch((err) => {
         console.error("Error fetching appointments:", err);
       });
   }, [vetId, token]);
+  
 
   const fetchAdditionalDetails = async (appointments, token) => {
     const updatedAppointments = await Promise.all(
       appointments.map(async (appointment) => {
         try {
-          const [vetRes, petRes,userRes] = await Promise.all([
+          const [vetRes, petRes, userRes] = await Promise.all([
             axios.get(`/api/vets/${appointment.vetId}`, {
               headers: { Authorization: `Bearer ${token}` },
             }),
@@ -42,7 +45,6 @@ const VetAppointments = () => {
             axios.get(`/api/appointments/userinfo/${appointment.userId}`, {
               headers: { Authorization: `Bearer ${token}` },
             }),
-
           ]);
 
           return {
@@ -55,7 +57,7 @@ const VetAppointments = () => {
         } catch (err) {
           console.error(
             `❌ Error fetching vet (${appointment.vetId}) or pet (${appointment.petId} or user(${appointment.userId})) details:`,
-            err.message
+            err.message,
           );
           return {
             ...appointment,
@@ -63,7 +65,7 @@ const VetAppointments = () => {
             petName: "Unknown Pet",
           };
         }
-      })
+      }),
     );
 
     return updatedAppointments;
@@ -74,12 +76,12 @@ const VetAppointments = () => {
       await axios.put(
         `/api/appointments/${id}/status`,
         { status: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       setAppointments((prev) =>
         prev.map((appt) =>
-          appt._id === id ? { ...appt, status: newStatus } : appt
-        )
+          appt._id === id ? { ...appt, status: newStatus } : appt,
+        ),
       );
     } catch (err) {
       console.error("Error updating appointment:", err);
@@ -89,19 +91,19 @@ const VetAppointments = () => {
   const allUpcoming = appointments
     .filter(
       (a) =>
-        a.status === "scheduled" && new Date(a.appointmentDate) > new Date()
+        a.status === "scheduled" && new Date(a.appointmentDate) > new Date(),
     )
     .sort(
       (a, b) =>
         new Date(a.appointmentDate).getTime() -
-        new Date(b.appointmentDate).getTime()
+        new Date(b.appointmentDate).getTime(),
     );
 
   const nextAppointment = allUpcoming[0];
   const upcomingAppointments = allUpcoming.slice(1);
 
   const pendingAppointments = appointments.filter(
-    (a) => a.status === "pending"
+    (a) => a.status === "pending",
   );
 
   const completedAppointments = appointments
@@ -109,7 +111,7 @@ const VetAppointments = () => {
     .sort(
       (a, b) =>
         new Date(b.appointmentDate).getTime() -
-        new Date(a.appointmentDate).getTime()
+        new Date(a.appointmentDate).getTime(),
     )
     .slice(0, 3);
 
@@ -122,67 +124,70 @@ const VetAppointments = () => {
             My Appointments
           </h1>
 
-{/* Next Appointment */}
-<div className="bg-blue-100 p-4 rounded-lg shadow-md">
-  <h2 className="text-xl font-semibold text-blue-900 mb-2">
-    Next Appointment
-  </h2>
-  {nextAppointment ? (
-    <div className="flex justify-between items-center">
-      <div className="flex items-center space-x-4">
-        <img
-          src={nextAppointment.petImage || "default_pet_image.jpg"}
-          alt="Pet"
-          className="w-14 h-14 rounded-full object-cover"
-        />
-        <div>
-          <p>
-            <strong>Pet:</strong> {nextAppointment.petName}
-          </p>
+          {/* Next Appointment */}
+          <div className="bg-blue-100 p-4 rounded-lg shadow-md">
+            <h2 className="text-xl font-semibold text-blue-900 mb-2">
+              Next Appointment
+            </h2>
+            {nextAppointment ? (
+              <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-4">
+                  <img
+                    src={nextAppointment.petImage || "default_pet_image.jpg"}
+                    alt="Pet"
+                    className="w-14 h-14 rounded-full object-cover"
+                  />
+                  <div>
+                    <p>
+                      <strong>Pet:</strong> {nextAppointment.petName}
+                    </p>
 
-          <p>
-  <strong>Owner:</strong> {nextAppointment.userName}
-</p>
+                    <p>
+                      <strong>Owner:</strong> {nextAppointment.userName}
+                    </p>
 
-          <p>
-            <strong>Date:</strong>{" "}
-            {new Date(nextAppointment.appointmentDate).toLocaleDateString()}
-          </p>
-          <p>
-            <strong>Time:</strong> {nextAppointment.scheduledTime}
-          </p>
-          <p>
-            <strong>Type:</strong>{" "}
-            {nextAppointment.appointmentType === "online consultation"
-              ? "Online Consultation"
-              : "In-person Appointment"}
-          </p>
-        </div>
-      </div>
+                    <p>
+                      <strong>Date:</strong>{" "}
+                      {new Date(
+                        nextAppointment.appointmentDate,
+                      ).toLocaleDateString()}
+                    </p>
+                    <p>
+                      <strong>Time:</strong> {nextAppointment.scheduledTime}
+                    </p>
+                    <p>
+                      <strong>Type:</strong>{" "}
+                      {nextAppointment.appointmentType === "online consultation"
+                        ? "Online Consultation"
+                        : "In-person Appointment"}
+                    </p>
+                  </div>
+                </div>
 
-      {nextAppointment.appointmentType === "online consultation" ? (
-        <button
-          onClick={() => navigate(`/video-call/${nextAppointment._id}`)}
-          className="bg-green-500 text-white px-4 py-2 rounded-lg shadow hover:bg-green-600"
-        >
-          Start Consultation
-        </button>
-      ) : (
-        <button
-          onClick={() =>
-            navigate(`/prescription-form/${nextAppointment._id}`)
-          }
-          className="bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-600"
-        >
-          Start Appointment
-        </button>
-      )}
-    </div>
-  ) : (
-    <p className="text-blue-800">No next appointment currently.</p>
-  )}
-</div>
-
+                {nextAppointment.appointmentType === "online consultation" ? (
+                  <button
+                    onClick={() =>
+                      navigate(`/video-call/${nextAppointment._id}`)
+                    }
+                    className="bg-green-500 text-white px-4 py-2 rounded-lg shadow hover:bg-green-600"
+                  >
+                    Start Consultation
+                  </button>
+                ) : (
+                  <button
+                    onClick={() =>
+                      navigate(`/prescription-form/${nextAppointment._id}`)
+                    }
+                    className="bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-600"
+                  >
+                    Start Appointment
+                  </button>
+                )}
+              </div>
+            ) : (
+              <p className="text-blue-800">No next appointment currently.</p>
+            )}
+          </div>
 
           {/* Pending Appointments */}
           <div className="bg-white p-4 rounded-lg shadow">
@@ -222,18 +227,14 @@ const VetAppointments = () => {
 
                     <div className="flex space-x-2">
                       <button
-                        onClick={() =>
-                          handleStatusChange(a._id, "scheduled")
-                        }
+                        onClick={() => handleStatusChange(a._id, "scheduled")}
                         className="text-green-600 hover:text-green-800 text-xl"
                         title="Confirm"
                       >
                         ✅
                       </button>
                       <button
-                        onClick={() =>
-                          handleStatusChange(a._id, "cancelled")
-                        }
+                        onClick={() => handleStatusChange(a._id, "cancelled")}
                         className="text-red-600 hover:text-red-800 text-xl"
                         title="Decline"
                       >
@@ -292,9 +293,7 @@ const VetAppointments = () => {
                       </button>
                     ) : (
                       <button
-                        onClick={() =>
-                          navigate(`/prescription-form/${a._id}`)
-                        }
+                        onClick={() => navigate(`/prescription-form/${a._id}`)}
                         className="bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-600"
                       >
                         Start Appointment
@@ -345,19 +344,21 @@ const VetAppointments = () => {
                             {a.petName}
                           </p>
                           <p className="text-xs text-gray-500">
-  {new Date(a.appointmentDate).toLocaleDateString()}
-</p>
-<p className="text-xs text-gray-500">Owner: {a.userName}</p>
+                            {new Date(a.appointmentDate).toLocaleDateString()}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Owner: {a.userName}
+                          </p>
 
                           <p className="text-xs text-gray-500">
                             {new Date(a.appointmentDate).toLocaleDateString()}
                           </p>
                           <p>
-                          Type:{" "}
-                          {a.appointmentType === "online consultation"
-                            ? "Online Consultation"
-                            : "In-person Appointment"}
-                        </p>
+                            Type:{" "}
+                            {a.appointmentType === "online consultation"
+                              ? "Online Consultation"
+                              : "In-person Appointment"}
+                          </p>
                           <span className="inline-block mt-1 px-2 py-0.5 text-xs bg-green-200 text-green-800 rounded-full">
                             Completed
                           </span>

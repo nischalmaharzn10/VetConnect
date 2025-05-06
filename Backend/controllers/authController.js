@@ -43,7 +43,7 @@ export const login = async (req, res) => {
 
     // Compare the password from login request with the stored hashed password
     const isMatch = await bcrypt.compare(password, user.password);
-    console.log("🔵 Password Match Status:", isMatch);
+    // console.log("🔵 Password Match Status:", isMatch);
 
     if (!isMatch) {
       console.log("🔴 Password Mismatch - Email:", email);
@@ -57,8 +57,6 @@ const token = jwt.sign(
   { expiresIn: "3d" } // Token valid for 3 days
 );
 
-
-    console.log("🟢 Login Successful - Email:", email, "Role:", role);
 
     res.json({
       token,

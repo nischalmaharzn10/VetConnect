@@ -46,8 +46,8 @@ export const getAppointmentsForUser = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    console.log("Decoded userId from token:", req.userId);
-    console.log("Requested userId from params:", req.params.userId);
+    // console.log("Decoded userId from token:", req.userId);
+    // console.log("Requested userId from params:", req.params.userId);
 
 
     // Ensure the userId in token matches the userId in the request
@@ -76,8 +76,8 @@ export const updateAppointmentStatus = async (req, res) => {
     const { status } = req.body;
     const appointmentId = req.params.appointmentId;
 
-    console.log("📥 Params - Appointment ID:", appointmentId);
-    console.log("📥 Body - Status:", status);
+    // console.log("📥 Params - Appointment ID:", appointmentId);
+    // console.log("📥 Body - Status:", status);
 
     // Validate inputs
     if (!appointmentId || !status) {

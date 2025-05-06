@@ -6,7 +6,7 @@ export const protect = async (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1]; // Extract token if available
   
   // Log the headers to see if the token is coming through
-  console.log("Request Headers:", req.headers);
+  // console.log("Request Headers:", req.headers);
 
   if (!token) {
     console.log("No token provided."); // Debugging log
@@ -15,7 +15,7 @@ export const protect = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("Decoded Token:", decoded); // Debugging log
+    // console.log("Decoded Token:", decoded); // Debugging log
 
     if (!decoded || !decoded.id) {
       console.log("Invalid token structure"); // Debugging log
@@ -25,11 +25,11 @@ export const protect = async (req, res, next) => {
     req.user = await User.findById(decoded.id).select("-password");
 
     if (!req.user) {
-      console.log("User not found for ID:", decoded.id); // Debugging log
+      // console.log("User not found for ID:", decoded.id); // Debugging log
       return res.status(401).json({ message: "User not found" });
     }
 
-    console.log("Authenticated user:", req.user); // Debugging log
+    // console.log("Authenticated user:", req.user); // Debugging log
     next();
   } catch (error) {
     console.error("JWT Verification Failed:", error.message); // Debugging log
@@ -44,8 +44,8 @@ export const authenticate = (req, res, next) => {
   const authHeader = req.header('Authorization');
   const token = authHeader?.split(' ')[1];
 
-  console.log("🔐 Incoming Request - Auth Header:", authHeader);
-  console.log("🔐 Extracted Token:", token);
+  // console.log("🔐 Incoming Request - Auth Header:", authHeader);
+  // console.log("🔐 Extracted Token:", token);
 
   if (!token) {
     console.log("❌ No token provided");
@@ -55,7 +55,7 @@ export const authenticate = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    console.log("✅ Token Decoded:", decoded);
+    // console.log("✅ Token Decoded:", decoded);
 
     req.user = decoded;         // 👈 Attach full user object including role
     req.userId = decoded.id || decoded._id;
@@ -70,9 +70,9 @@ export const authenticate = (req, res, next) => {
 // Middleware to check if the user has the correct role
 export const authorize = (roles = []) => {
   return (req, res, next) => {
-    console.log("🔍 Checking Authorization...");
-    console.log("🔍 Required Roles:", roles);
-    console.log("🔍 User Info from Token:", req.user);
+    // console.log("🔍 Checking Authorization...");
+    // console.log("🔍 Required Roles:", roles);
+    // console.log("🔍 User Info from Token:", req.user);
 
     if (!req.user || !roles.includes(req.user.role)) {
       console.error("🚫 Access forbidden: insufficient rights or role missing");

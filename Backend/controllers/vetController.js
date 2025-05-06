@@ -9,7 +9,7 @@ dotenv.config();
 // ✅ API to Register Veterinarian
 export const registerVet = async (req, res) => {
     try {
-        console.log("Received Data:", req.body); // Debugging request body
+        // console.log("Received Data:", req.body); // Debugging request body
 
         const { name, email, phoneNumber, password } = req.body;
 

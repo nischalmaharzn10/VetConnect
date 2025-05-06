@@ -52,7 +52,7 @@ const VetAppHistory = () => {
             setAppointments([...tempList]); // Update UI with current snapshot
             setFiltered([...tempList]);
   
-            console.log("Fetched:", updated);
+            // console.log("Fetched:", updated);
           } catch (err) {
             console.error(`❌ Failed to fetch prescription for ${a._id}`, err);
           }

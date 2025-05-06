@@ -51,7 +51,7 @@ const ClientAppHistory = () => {
           }
         }
   
-        console.log("✅ Completed Appointments with Prescriptions:", tempList);
+        // console.log("✅ Completed Appointments with Prescriptions:", tempList);
   
         setAppointments([...tempList]);
         setFiltered([...tempList]);

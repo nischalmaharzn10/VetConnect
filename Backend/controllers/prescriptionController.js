@@ -17,7 +17,7 @@ export const upsertPrescription = async (req, res) => {
     scheduledTime,
   } = req.body;
 
-  console.log("📥 Incoming Prescription Data:", req.body);
+  // console.log("📥 Incoming Prescription Data:", req.body);
 
   // Validate required fields
   if (!medication || !dosage || !instructions || !symptoms) {
@@ -32,7 +32,7 @@ export const upsertPrescription = async (req, res) => {
 
 
     let prescription = await Prescribe.findOne({ appointmentId });
-    console.log("🔍 Existing Prescription Fetched:", prescription);
+    // console.log("🔍 Existing Prescription Fetched:", prescription);
 
 
     if (prescription) {
@@ -42,7 +42,7 @@ export const upsertPrescription = async (req, res) => {
       prescription.prescription.dosage = dosage;
       prescription.prescription.instructions = instructions;
       await prescription.save();
-      console.log("📝 Updated existing prescription:", prescription);
+      // console.log("📝 Updated existing prescription:", prescription);
     } else {
       // 🆕 Create new prescription
       prescription = new Prescribe({
@@ -61,7 +61,7 @@ export const upsertPrescription = async (req, res) => {
       });
 
       await prescription.save();
-      console.log("✅ Created new prescription:", prescription);
+      // console.log("✅ Created new prescription:", prescription);
     }
 
     res.status(200).json({ message: "Prescription saved successfully", prescription });
@@ -76,7 +76,7 @@ export const upsertPrescription = async (req, res) => {
 export const getPrescriptionByAppointmentId = async (req, res) => {
     const { appointmentId } = req.params;
   
-    console.log("📥 Incoming request to fetch prescription for Appointment ID:", appointmentId);
+    // console.log("📥 Incoming request to fetch prescription for Appointment ID:", appointmentId);
   
     try {
       const prescription = await Prescribe.findOne({ appointmentId })
@@ -85,11 +85,11 @@ export const getPrescriptionByAppointmentId = async (req, res) => {
         .populate("vetId");
   
       if (!prescription) {
-        console.log("❌ No prescription found for appointment:", appointmentId);
+        // console.log("❌ No prescription found for appointment:", appointmentId);
         return res.status(404).json({ message: "Prescription not found" });
       }
   
-      console.log("✅ Prescription with populated data found:", prescription);
+      // console.log("✅ Prescription with populated data found:", prescription);
   
       res.status(200).json({ prescription });
     } catch (error) {

@@ -9,7 +9,7 @@ dotenv.config();
 // ✅ API to Register User
 export const registerUser = async (req, res) => {
     try {
-        console.log("Received Data:", req.body);  // Debugging request body
+        // console.log("Received Data:", req.body);  // Debugging request body
 
         const { name, email, phoneNumber, password } = req.body;
 
@@ -52,9 +52,9 @@ export const registerUser = async (req, res) => {
         // ✅ Save new user to database and handle potential errors
         let savedUser;
         try {
-            console.log("Saving User to Database...");
+            // console.log("Saving User to Database...");
             savedUser = await newUser.save();
-            console.log("User Saved Successfully:", savedUser);
+            // console.log("User Saved Successfully:", savedUser);
         } catch (error) {
             console.error("Error Saving User:", error);
             return res.status(500).json({ success: false, message: "Database Error", error: error.message });
