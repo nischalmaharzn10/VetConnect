@@ -1,125 +1,207 @@
 // VideoCall.jsx (Vet side)
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import io from 'socket.io-client';
+import socket from "../utils/socket"; // Adjust the path according to folder structure
 
-const socket = io('http://localhost:5555');
+
 
 export default function VideoCall() {
   const { appointmentId } = useParams();
   const navigate = useNavigate();
-
-  const [appt, setAppt] = useState(null);
-  const [pres, setPres] = useState({ symptoms: '', medication: '', dosage: '', instructions: '' });
-  const [pc, setPc] = useState(null);
-  const [started, setStarted] = useState(false);
-
+  
+  // State management
+  const [appt, setAppt] = useState(null); // Appointment details
+  const [pres, setPres] = useState({ symptoms: '', medication: '', dosage: '', instructions: '' }); // Prescription
+  const [pc, setPc] = useState(null); // Peer connection for WebRTC
+  const [started, setStarted] = useState(false); // Track WebRTC session status
+  
+  // Video elements
   const userVid = useRef();
   const peerVid = useRef();
-
-  // Load appointment
+  
+  // Load appointment details
   useEffect(() => {
-    axios.get(`/api/appointments/${appointmentId}`)
-      .then(res => {
+    const fetchAppointment = async () => {
+      try {
+        const res = await axios.get(`/api/appointments/${appointmentId}`);
         console.log('📄 Loaded appointment:', res.data.appointment);
         setAppt(res.data.appointment);
-      })
-      .catch(err => {
+  
+        if (res.data.appointment?.vetId?._id) {
+          console.log("vetId exists:", res.data.appointment.vetId._id);
+        } else {
+          console.error('❌ vetId not found in appointment data');
+        }
+  
+        // Connect socket only once after loading appointment
+        if (!socket.connected) {
+          socket.connect();
+          console.log("🔌 Socket connected from vet side");
+        }
+  
+      } catch (err) {
         console.error('❌ Failed to load appointment:', err);
         alert('Failed to load appointment');
-      });
+      }
+    };
+  
+    fetchAppointment();
+  
+    // Cleanup: disconnect socket and remove listeners
+    return () => {
+      socket.off('user-accepted-call');
+      socket.disconnect();
+      console.log("❌ Socket disconnected on cleanup");
+    };
   }, [appointmentId]);
+  
 
-  // Listen for user's acceptance
-  useEffect(() => {
+// Listen for user acceptance and initiate WebRTC only after appt is loaded
+useEffect(() => {
+  if (appt?.vetId?._id) {
+    // Listen for user acceptance and initiate WebRTC
     socket.on('user-accepted-call', () => {
       console.log('✅ User accepted call. Starting WebRTC...');
       initWebRTC(true);
     });
 
+    // Cleanup socket listener on unmount or when appt changes
     return () => {
       socket.off('user-accepted-call');
     };
-  }, []);
-
-  // Setup peer connection listeners
+  }
+}, [appt]);  // Only run when appt is available
+  
+  
+  // Setup peer connection listeners (answer, ICE candidate, offer)
   useEffect(() => {
     if (!pc) return;
-
-    socket.on('receive-answer', async answer => {
+  
+    socket.on('receive-answer', async (answer) => {
       console.log('📩 Received answer:', answer);
       await pc.setRemoteDescription(new RTCSessionDescription(answer));
     });
-
-    socket.on("receive-ice-candidate", (candidate) => {
-      console.log("❄️ Received ICE candidate:", candidate);
+  
+    socket.on('receive-ice-candidate', (candidate) => {
+      console.log('❄️ Received ICE candidate:', candidate);
       pc.addIceCandidate(new RTCIceCandidate(candidate));
     });
-
-    socket.on("receive-offer", async (offer) => {
-      console.log("📩 Received offer:", offer);
+  
+    socket.on('receive-offer', async (offer) => {
+      console.log('📩 Received offer:', offer);
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
-      socket.emit("send-answer", answer, appointmentId);
+      socket.emit('send-answer', answer, appointmentId); // <- uses appointmentId
     });
-
+  
     return () => {
       socket.off('receive-answer');
       socket.off('receive-ice-candidate');
       socket.off('receive-offer');
     };
-  }, [pc]);
+  }, [pc, appointmentId]); // ✅ include appointmentId
+  
 
-  const initWebRTC = async (createOffer = false) => {
-    if (started) return;
-    setStarted(true);
+// Initialize WebRTC connection
+const initWebRTC = async (createOffer = false) => {
+  if (!appt) {
+    console.error("❌ appt data is not available yet");
+    return;
+  }
 
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    userVid.current.srcObject = stream;
+  console.log("📄 Full appointment object:", appt);
 
-    const peer = new RTCPeerConnection();
-    setPc(peer);
+  const userId = appt.vetId?._id;
+  console.log("🧑‍⚕️ Vet ID supposed to be:", userId);
 
-    stream.getTracks().forEach(track => peer.addTrack(track, stream));
+  const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+  userVid.current.srcObject = stream;
 
-    peer.onicecandidate = ({ candidate }) => {
-      if (candidate) {
-        console.log('📤 Sending ICE candidate:', candidate);
-        socket.emit('send-ice-candidate', candidate, appointmentId);
-      }
-    };
+  const peer = new RTCPeerConnection();
 
-    peer.ontrack = (event) => {
-      peerVid.current.srcObject = event.streams[0];
-    };
-
-    socket.emit('join-room', appointmentId);
-    console.log('🔗 Joined room:', appointmentId);
-
-    if (createOffer) {
-      const offer = await peer.createOffer();
-      await peer.setLocalDescription(offer);
-      console.log('📤 Sending offer:', offer);
-      socket.emit('send-offer', offer, appointmentId);
+  // 🔗 Setup listeners on THIS peer
+  peer.onicecandidate = ({ candidate }) => {
+    if (candidate) {
+      console.log('📤 Sending ICE candidate:', candidate);
+      socket.emit('send-ice-candidate', candidate, appointmentId);
     }
   };
 
-  const invite = () => {
-    if (!appt?.userId?._id) {
-      console.warn('⚠️ User ID not found in appointment data');
-      return;
-    }
-
-    const payload = { userId: appt.userId._id, appointmentId };
-    console.log('📞 Inviting user:', payload);
-    socket.emit('invite-call', payload); // ✅ this matches your backend
+  peer.ontrack = (event) => {
+    peerVid.current.srcObject = event.streams[0];
   };
 
+  // 🔁 Setup socket listeners here too
+  socket.on('receive-answer', async (answer) => {
+    console.log('📩 Received answer:', answer);
+    await peer.setRemoteDescription(new RTCSessionDescription(answer));
+  });
+
+  socket.on('receive-ice-candidate', (candidate) => {
+    console.log('❄️ Received ICE candidate:', candidate);
+    peer.addIceCandidate(new RTCIceCandidate(candidate));
+  });
+
+  socket.on('receive-offer', async (offer) => {
+    console.log('📩 Received offer:', offer);
+    await peer.setRemoteDescription(new RTCSessionDescription(offer));
+    const answer = await peer.createAnswer();
+    await peer.setLocalDescription(answer);
+    socket.emit('send-answer', answer, appointmentId);
+  });
+
+  stream.getTracks().forEach(track => peer.addTrack(track, stream));
+
+  socket.emit('join-room', { actualApptId: appointmentId, userId });
+  console.log('🔗 Joined room:', appointmentId);
+
+  if (createOffer) {
+    const offer = await peer.createOffer();
+    await peer.setLocalDescription(offer);
+    console.log('📤 Sending offer:', offer);
+    socket.emit('send-offer', { offer, appointmentId });
+  }
+
+  // ✅ Set peer AFTER all handlers are attached
+  setPc(peer);
+};
+
+
+
+const invite = () => {
+  const userId = appt?.userId?._id;
+  const apptId = appointmentId;
+
+  if (!userId || !apptId) {
+    console.warn("⚠️ Missing userId or appointmentId");
+    return;
+  }
+
+  console.log("➡️ Emitting join-room with:", { actualApptId: apptId, userId });
+  socket.emit("join-room", { actualApptId: apptId, userId });
+
+  console.log("🧑‍⚕️ Vet joined room:", `${apptId}`);
+
+  const payload = { userId, appointmentId: apptId };
+  console.log("📞 Inviting user to call with payload:", payload);
+  socket.emit("invite-call", payload);
+};
+
+
+  
+  
+  
+
+  // Finish the appointment (complete the session and save prescription)
   const finish = async () => {
     try {
+      // Update appointment status to 'completed'
       await axios.put(`/api/appointments/${appointmentId}/status`, { status: 'completed' });
+
+      // Save prescription details
       await axios.put(`/api/appointments/${appointmentId}/prescription`, {
         ...pres,
         petId: appt.petId._id,
@@ -128,6 +210,7 @@ export default function VideoCall() {
         appointmentDate: appt.appointmentDate,
         scheduledTime: appt.scheduledTime
       });
+
       alert('✅ Appointment completed.');
       navigate('/vet-dashboard');
     } catch (err) {

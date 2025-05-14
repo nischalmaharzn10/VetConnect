@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import io from "socket.io-client";
+import { useCallback } from "react";
 
 // Set up the server URL for Socket.IO
 const socket = io("http://localhost:5555");
@@ -10,6 +11,7 @@ const ClientVideoCall = () => {
   const { appointmentId } = useParams();
   const navigate = useNavigate();
 
+  // State management
   const [appointment, setAppointment] = useState(null);
   const [prescription, setPrescription] = useState({
     symptoms: "",
@@ -17,7 +19,6 @@ const ClientVideoCall = () => {
     dosage: "",
     instructions: "",
   });
-
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [stream, setStream] = useState(null);
@@ -26,6 +27,7 @@ const ClientVideoCall = () => {
   const [showNotification, setShowNotification] = useState(false);
   const [isVet, setIsVet] = useState(false);
 
+  // Video references
   const userVideoRef = useRef(null);
   const peerVideoRef = useRef(null);
 
@@ -33,62 +35,52 @@ const ClientVideoCall = () => {
   useEffect(() => {
     const currentUser = JSON.parse(localStorage.getItem("user"));
     const currentUserId = currentUser ? currentUser.id : null;
-    console.log("👤 Current user ID:", currentUserId);
+    socket.emit("register-user", { userId: currentUser.id });
 
     const token = localStorage.getItem("token");
+
     if (!token) {
       console.error("❌ Token not found, user is not authenticated!");
       alert("User is not authenticated. Please login.");
       return;
     }
-    console.log("🔑 Token found:", token);
 
     const fetchAppointment = async () => {
       try {
-        console.log("📅 Searching for appointments...");
         const res = await axios.get(`/api/appointments/users/${currentUserId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const fetchedAppointments = res.data.appointments || res.data;
-        console.log("📄 Loaded appointments:", fetchedAppointments);
     
-        // Filter appointments to find online consultations and sort them by appointment date
+        const fetchedAppointments = res.data.appointments || res.data;
+    
         const onlineAppointments = fetchedAppointments
           .filter((appt) => appt.appointmentType === 'online consultation' && appt.status === 'scheduled')
           .sort((a, b) => new Date(a.appointmentDate) - new Date(b.appointmentDate));
     
-        console.log("🔍 Filtered online consultation appointments:", onlineAppointments);
-    
-        // Find the next online consultation appointment
-        const nextAppointment = onlineAppointments.find((appt) => new Date(appt.appointmentDate) > new Date());
-        console.log("📅 Next online consultation appointment:", nextAppointment);
+        const nextAppointment = onlineAppointments.find(
+          (appt) => new Date(appt.appointmentDate) > new Date()
+        );
     
         if (nextAppointment) {
+          console.log("📅 Next online appointment:", nextAppointment);
           setAppointment(nextAppointment);
-          console.log("📄 Next online consultation appointment:", nextAppointment);
     
           if (nextAppointment?.vetId?._id === currentUserId) {
-            console.log("👨‍⚕️ This appointment belongs to the current vet.");
             setIsVet(true);
-          } else {
-            console.log("👩‍⚕️ This appointment does not belong to the current vet.");
           }
         } else {
-          console.log("📅 No upcoming online consultation appointment found.");
           setAppointment(null);
         }
-    
       } catch (err) {
         console.error("❌ Failed to fetch appointments:", err);
         alert("Failed to load appointments.");
       } finally {
-        console.log("✅ Fetching appointments completed.");
         setLoading(false);
       }
     };
     
+
     fetchAppointment();
-    
   }, []);
 
   // Cleanup function when component unmounts or changes
@@ -107,9 +99,7 @@ const ClientVideoCall = () => {
   const startWebRTC = async () => {
     try {
       const userStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      console.log("📹 Got user media");
       setStream(userStream);
-
       if (userVideoRef.current) {
         userVideoRef.current.srcObject = userStream;
       }
@@ -120,26 +110,37 @@ const ClientVideoCall = () => {
 
       peer.onicecandidate = (event) => {
         if (event.candidate) {
-          console.log("📤 Sending ICE candidate:", event.candidate);
           socket.emit("send-ice-candidate", event.candidate, appointmentId);
         }
       };
 
       peer.ontrack = (event) => {
-        console.log("📥 Received peer track");
         if (peerVideoRef.current) {
           peerVideoRef.current.srcObject = event.streams[0];
         }
       };
-
-      const currentUserId = localStorage.getItem("userId");
-      socket.emit("join-room", appointmentId);
-      console.log("🔗 Joined room:", appointmentId);
-
-      if (!isVet) {
-        console.log("📞 Accepting call, notifying vet...");
-        socket.emit("accept-call", null, appointmentId);
-      }
+      
+      const actualApptId = appointmentId && appointmentId !== ":appointmentId"
+      ? appointmentId
+      : appointment?._id;
+    
+    console.log("🧾 Attempting to join and accept call for appointmentId:", actualApptId);
+    
+    if (!actualApptId) {
+      console.error("❌ Valid appointmentId is missing. Cannot join room.");
+      return;
+    }
+    
+    socket.emit("join-room", {
+      actualApptId, // must be defined
+    });
+    
+    
+    if (!isVet) {
+      socket.emit("accept-call", actualApptId,appointmentId);
+    }
+    
+      
     } catch (error) {
       console.error("❌ WebRTC error:", error);
     }
@@ -150,21 +151,17 @@ const ClientVideoCall = () => {
     if (!peerConnection) return;
 
     socket.on("receive-ice-candidate", (candidate) => {
-      console.log("❄️ Received ICE candidate:", candidate);
       peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
     });
 
     socket.on("receive-offer", async (offer) => {
-      console.log("📩 Received offer:", offer);
       await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
       const answer = await peerConnection.createAnswer();
       await peerConnection.setLocalDescription(answer);
       socket.emit("send-answer", answer, appointmentId);
-      console.log("📤 Sent answer:", answer);
     });
 
     socket.on("receive-answer", async (answer) => {
-      console.log("📩 Received answer:", answer);
       await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
     });
 
@@ -175,32 +172,61 @@ const ClientVideoCall = () => {
     };
   }, [peerConnection, appointmentId]);
 
-  // Call invitation and acceptance
   useEffect(() => {
-    const currentUserId = localStorage.getItem("userId");
-
-    socket.on("call-invitation", ({ userId: invitedUserId, appointmentId: invitedApptId }) => {
-      console.log("📨 Received call invitation:", invitedUserId, invitedApptId);
-      if (currentUserId === invitedUserId && invitedApptId === appointmentId) {
+    console.log("📲 Initializing call invitation listener...");
+  
+    const rawUser = localStorage.getItem("user");
+    console.log("🗂 Raw user data from localStorage:", rawUser);
+  
+    let user = null;
+    let currentUserId = null;
+  
+    try {
+      user = JSON.parse(rawUser);
+      currentUserId = user?.id;
+      console.log("✅ Parsed user:", user);
+      console.log("🆔 Current user ID:", currentUserId);
+    } catch (err) {
+      console.error("❌ Failed to parse user from localStorage:", err);
+    }
+    
+    socket.on("call-invitation", ({ userId }) => {
+      console.log("📨 Received call invitation for user:", userId);
+      console.log("👤 Current user ID:", currentUserId);
+    
+      if (userId === currentUserId) {
+        console.log("✅ User match. Showing notification...");
         setShowNotification(true);
+      } else {
+        console.warn("❌ User mismatch. Not showing notification.");
       }
     });
-
+    
+    
+  
     socket.on("user-accepted-call", () => {
-      console.log("✅ Call accepted. Starting WebRTC...");
+      console.log("📞 Call accepted event received.");
       setCallAccepted(true);
-      if (isVet) startWebRTC(); // Only vet starts on accept
+  
+      if (isVet) {
+        console.log("👨‍⚕️ Is vet. Starting WebRTC...");
+        startWebRTC();
+      } else {
+        console.log("🙅‍♂️ Not vet. Skipping WebRTC start.");
+      }
     });
-
+  
     return () => {
+      console.log("🧹 Cleaning up socket listeners.");
       socket.off("call-invitation");
       socket.off("user-accepted-call");
     };
   }, [isVet, appointmentId]);
+  
+  
 
   // Accept the call
   const acceptCall = () => {
-    console.log("👍 User accepted call.");
     setShowNotification(false);
     setCallAccepted(true);
     startWebRTC();
@@ -208,11 +234,12 @@ const ClientVideoCall = () => {
 
   // Decline the call
   const declineCall = () => {
-    console.log("👎 User declined call.");
     setShowNotification(false);
     socket.emit("decline-call", appointmentId);
     navigate("/user-dashboard");
   };
+
+
 
   // Handle prescription changes
   const handleChange = (e) => {
@@ -229,12 +256,7 @@ const ClientVideoCall = () => {
 
     try {
       setSubmitting(true);
-      console.log("📝 Submitting appointment & prescription...");
-
-      await axios.put(`/api/appointments/${appointmentId}/status`, {
-        status: "completed",
-      });
-
+      await axios.put(`/api/appointments/${appointmentId}/status`, { status: "completed" });
       await axios.put(`/api/appointments/${appointmentId}/prescription`, {
         ...prescription,
         petId: appointment.petId?._id,

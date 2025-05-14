@@ -94,6 +94,61 @@ const MyAppointments = () => {
         <div className="flex-1 space-y-6">
           <h1 className="text-3xl font-semibold text-gray-800">My Appointments</h1>
 
+          {/* Next Appointment */}
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h2 className="text-xl font-semibold text-gray-700 mb-2">Next Appointment</h2>
+            {appointments
+              .filter((a) => a.status === "scheduled" && new Date(a.appointmentDate) > new Date())
+              .sort((a, b) => new Date(a.appointmentDate) - new Date(b.appointmentDate))[0] ? (
+              <div className="bg-gray-50 p-4 rounded-lg shadow flex items-center justify-between">
+                {(() => {
+                  const nextAppointment = appointments
+                    .filter((a) => a.status === "scheduled" && new Date(a.appointmentDate) > new Date())
+                    .sort((a, b) => new Date(a.appointmentDate) - new Date(b.appointmentDate))[0];
+                  return (
+                    <>
+                      <div className="flex items-center space-x-4">
+                        <img
+                          src={nextAppointment.petImage || "default_pet_image.jpg"}
+                          alt="Pet"
+                          className="w-14 h-14 rounded-full object-cover"
+                        />
+                        <div>
+                          <p className="font-semibold">Vet: Dr. {nextAppointment.vetName || nextAppointment.vetId}</p>
+                          <p>Pet: {nextAppointment.petName || nextAppointment.petId}</p>
+                          <p>Date: {new Date(nextAppointment.appointmentDate).toLocaleDateString()}</p>
+                          <p>Time: {nextAppointment.scheduledTime}</p>
+                          <p>
+                            <strong>Type:</strong>{" "}
+                            {nextAppointment.appointmentType === "online consultation"
+                              ? "Online Consultation"
+                              : "In-person Appointment"}
+                          </p>
+                        </div>
+
+                      </div>
+                      {nextAppointment.appointmentType === "online consultation" ? (
+                        <button
+                          onClick={() => navigate(`/client/video-call/:appointmentId`)}
+                          className="px-3 py-1 text-sm rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+                        >
+                          Join Consultation
+                        </button>
+                      ) : (
+                        <span className="px-3 py-1 text-sm rounded-full bg-blue-300 text-blue-800">
+                          Scheduled
+                        </span>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+            ) : (
+              <p className="text-gray-500">No upcoming appointments scheduled.</p>
+            )}
+          </div>
+
+
           {/* Pending Appointments */}
           <div className="bg-white p-4 rounded-lg shadow">
             <h2 className="text-xl font-semibold text-gray-700 mb-2">Pending Requests</h2>
@@ -117,6 +172,10 @@ const MyAppointments = () => {
                           <p>Pet: {a.petName || a.petId}</p>
                           <p>Date: {new Date(a.appointmentDate).toLocaleDateString()}</p>
                           <p>Time: {a.scheduledTime}</p>
+                          <p>
+                            <strong>Type:</strong>{" "}
+                            {a.appointmentType === "online consultation" ? "Online Consultation" : "In-person Appointment"}
+                          </p>
                         </div>
                       </div>
                       <span className="px-3 py-1 text-sm rounded-full bg-yellow-300 text-yellow-800">
@@ -153,6 +212,10 @@ const MyAppointments = () => {
                           <p>Pet: {a.petName || a.petId}</p>
                           <p>Date: {new Date(a.appointmentDate).toLocaleDateString()}</p>
                           <p>Time: {a.scheduledTime}</p>
+                          <p>
+                            <strong>Type:</strong>{" "}
+                            {a.appointmentType === "online consultation" ? "Online Consultation" : "In-person Appointment"}
+                          </p>
                         </div>
                       </div>
                       <span className="px-3 py-1 text-sm rounded-full bg-blue-300 text-blue-800">
@@ -199,6 +262,10 @@ const MyAppointments = () => {
                             <p className="text-xs text-gray-500">{a.vetName || "Unknown Vet"}</p>
                             <p className="text-xs text-gray-500">
                               {new Date(a.appointmentDate).toLocaleDateString()}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              <strong>Type:</strong>{" "}
+                              {a.appointmentType === "online consultation" ? "Online Consultation" : "In-person Appointment"}
                             </p>
                             <span className="inline-block mt-1 px-2 py-0.5 text-xs bg-green-200 text-green-800 rounded-full">
                               Completed
