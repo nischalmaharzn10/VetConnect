@@ -28,10 +28,15 @@ export const createAppointment = async (req, res) => {
     });
 
     const savedAppointment = await newAppointment.save();
+    console.log("Appointment saved:", savedAppointment);
+    console.log("Appointment ID:", savedAppointment._id);  // Print the ID here
+
+
     return res.status(201).json({ 
       message: "Appointment created successfully.", 
       appointment: savedAppointment 
     });
+
 
   } catch (error) {
     console.error("❌ Error creating appointment:", error);
@@ -222,5 +227,22 @@ export const getBookedTimes = async (req, res) => {
     res.json(bookedTimes);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch booked times" });
+  }
+};
+
+
+export const getAllAppointments = async (req, res) => {
+  try {
+    // Optionally, add authorization here (req.user, etc.)
+
+    const appointments = await Appointment.find({})
+      .populate('vetId', 'name email phoneNumber')    // select fields you want from Vet
+      .populate('userId', 'name email phoneNumber')   // select fields you want from User (owner)
+      .populate('petId', 'name species breed');       // select fields from Pet
+
+    res.json({ appointments });
+  } catch (err) {
+    console.error('Error fetching appointments:', err);
+    res.status(500).json({ message: 'Server error fetching appointments' });
   }
 };

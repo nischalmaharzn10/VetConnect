@@ -110,51 +110,73 @@ const AppointmentPage = () => {
     }
   };
 
-  const handleBookNowClick = async (e) => {
-    e.preventDefault();
+const handleBookNowClick = async (e) => {
+  e.preventDefault();
 
-    if (!appointmentDate || !appointmentTime) {
-      setStatus("Error 400: Please select both a date and a time.");
-      return;
-    }
+  // 🔍 Basic form validations
+  if (!appointmentDate || !appointmentTime) {
+    setStatus("❌ Error 400: Please select both a date and a time.");
+    return;
+  }
 
-    if (!user || !user.id) {
-      setStatus("Error 401: Please log in to book an appointment.");
-      return;
-    }
+  if (!user?.id) {
+    setStatus("❌ Error 401: Please log in to book an appointment.");
+    return;
+  }
 
-    if (!selectedPet) {
-      setStatus("Error 402: Please select a pet.");
-      return;
-    }
+  if (!selectedPet) {
+    setStatus("❌ Error 402: Please select a pet.");
+    return;
+  }
 
-    try {
-      const response = await axios.post(
-        "http://localhost:5555/api/appointments/create",
-        {
-          userId: user.id,
-          vetId: id,
-          petId: selectedPet._id,
-          appointmentDate,
-          scheduledTime: appointmentTime,
-          appointmentType,
+  try {
+    // 📡 Send booking request to backend
+    const response = await axios.post(
+      "http://localhost:5555/api/appointments/create",
+      {
+        userId: user.id,
+        vetId: id,
+        petId: selectedPet._id,
+        appointmentDate,
+        scheduledTime: appointmentTime,
+        appointmentType,
+        isPaid: false,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        }
-      );
-
-      console.log("Booking successful:", response.data);
-      setShowDialog(true);
-    } catch (error) {
-      console.error("Error booking appointment:", error);
-      if (error.response) {
-        setStatus(`Error: ${error.response.data.message || "There was an issue while booking your appointment."}`);
-      } else {
-        setStatus("Error: There was an issue while booking your appointment.");
       }
+    );
+
+    const { appointment } = response.data;
+
+    console.log("✅ Appointment created:", appointment);
+
+    const bookingId = appointment?._id;
+
+    if (!bookingId) {
+      setStatus("❌ Error: Booking ID is missing from server response.");
+      return;
     }
-  };
+
+    // ⏳ Optional short delay before redirecting
+    console.log("🔁 Redirecting to payment for booking ID:", bookingId);
+    setTimeout(() => {
+      window.location.href = `http://localhost:5555/api/payment/esewa/pay/${bookingId}`;
+    }, 1000);
+
+  } catch (error) {
+    console.error("❌ Error booking appointment:", error);
+
+    const message = error.response?.data?.message 
+      || "There was an issue while booking your appointment.";
+    
+    setStatus(`Error: ${message}`);
+  }
+};
+
+
 
   if (!vet) return <p className="text-center text-gray-500">Loading vet details...</p>;
 
@@ -236,10 +258,16 @@ const AppointmentPage = () => {
             <button
               type="button"
               onClick={handleBookNowClick}
-              className="mt-4 w-full bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-500 transition"
+              className="mt-4 w-full bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-500 transition flex items-center justify-center gap-2"
             >
-              Book Now
+              <span>Continue to Pay</span>
+              <img
+                src="https://upload.wikimedia.org/wikipedia/en/thumb/1/16/ESewa_Logo.png/320px-ESewa_Logo.png"
+                alt="eSewa Logo"
+                className="h-6 w-auto"
+              />
             </button>
+
 
             {showDialog && (
               <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-50">

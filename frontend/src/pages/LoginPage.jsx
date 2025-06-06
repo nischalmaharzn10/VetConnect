@@ -14,49 +14,53 @@ const LoginPage = () => {
     setRole(role); // Ensure role is set when selected
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setError(null); // Clear any previous errors
+const handleSubmit = (e) => {
+  e.preventDefault();
+  setError(null); // Clear any previous errors
 
-    if (!selectedRole) {
-      setError("Please select a role.");
-      return; // Prevent form submission if no role is selected
-    }
+  if (!selectedRole) {
+    setError("Please select a role.");
+    return; // Prevent form submission if no role is selected
+  }
 
-    // Perform the login request
-    fetch("http://localhost:5555/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, role }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.token && data.user) {
+  fetch("http://localhost:5555/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password, role: selectedRole }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.user) {
+        // If vet and NOT approved, redirect to waiting page
+        if (selectedRole === "vet" && data.approved === false) {
+          // Store user info (optional) without token
+          localStorage.setItem("user", JSON.stringify(data.user));
+          // Redirect to waiting page
+          window.location.href = "/waitingpage";
+          return;
+        }
+
+        if (data.token) {
           // Store token and user data in localStorage
           localStorage.setItem("token", data.token);
           localStorage.setItem("user", JSON.stringify(data.user));
-        
-          console.log("Login successful:", data);
-        
-          // Debugging: Print stored user data
-          const storedUser = JSON.parse(localStorage.getItem("user"));
-          console.log("Stored User Data:", storedUser);
-        
-          // Check what selectedRole is before navigating
-          console.log("Selected Role:", selectedRole);
-        
-          // Navigate based on the selected role
-          setTimeout(() => {
-            window.location.href = selectedRole === "vet" ? "/vet-dashboard" : "/user-dashboard";
-          }, 0);
-          
+
+          // Redirect vets or users to their dashboards
+          if (selectedRole === "vet") {
+            window.location.href = "/vet-dashboard";
+          } else {
+            window.location.href = "/user-dashboard";
+          }
         } else {
-          // Show error message from response if available
           setError(data.message || "Invalid credentials");
         }
-      })
-      .catch(() => setError("An error occurred. Please try again."));
-  };
+      } else {
+        setError(data.message || "Invalid credentials");
+      }
+    })
+    .catch(() => setError("An error occurred. Please try again."));
+};
+
 
   return (
     <div className="flex justify-center items-center h-screen bg-gray-100">

@@ -101,3 +101,47 @@ export const deletePet = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to delete pet", error: error.message });
   }
 };
+
+
+import mongoose from 'mongoose';
+
+export const getPetsByUserId = async (req, res) => {
+  try {
+    const userId = new mongoose.Types.ObjectId(req.params.userId);
+
+    // Populate userId with user's name and image
+    const pets = await Pet.find({ userId }).populate("userId", "name image");
+
+    res.status(200).json({ success: true, pets });
+  } catch (error) {
+    console.error("❌ Error fetching pets:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const deletePetsByUserId = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    await Pet.deleteMany({ userId });
+    res.status(200).json({ success: true, message: 'Pets deleted' });
+  } catch (error) {
+    console.error('Error deleting pets:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete pets' });
+  }
+};
+// Getting the name of a pet from the ID
+export const getPetNameById = async (req, res) => {
+  const { id } = req.params;
+  console.log('Received petId:', id); // Fixed incorrect variable name
+
+  try {
+    const pet = await Pet.findById(id).select('name');
+    if (!pet) {
+      return res.status(404).json({ message: 'Pet not found' });
+    }
+    res.json({ pet: { name: pet.name } });
+  } catch (error) {
+    console.error('Error fetching pet name:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};

@@ -1,60 +1,74 @@
-// socket/videoCallSocket.js
-export default function setupSocket(io) {
+import mongoose from 'mongoose';
+import Appointment from '../models/Appointment.js';
+
+export default function setupVideoCallSocket(io) {
   io.on('connection', (socket) => {
-    console.log('🔌 Socket connected:', socket.id);
+    console.log(`🔌 Socket connected: ${socket.id}`);
 
     socket.on('register-user', ({ userId }) => {
       if (userId) {
         socket.join(userId);
         console.log(`👤 Registered user ${userId} on socket ${socket.id}`);
+      } else {
+        console.warn('⚠️ No userId provided for register-user');
+      }
+    });
+
+    socket.on('join-room', async ({ actualApptId, userId }) => {
+      if (!actualApptId || actualApptId === ':appointmentId') {
+        console.warn(`⚠️ Invalid appointmentId: ${actualApptId}`);
+        return;
+      }
+
+      if (!mongoose.Types.ObjectId.isValid(actualApptId)) {
+        console.warn(`⚠️ Invalid ObjectId format: ${actualApptId}`);
+        return;
+      }
+
+      try {
+        const appointment = await Appointment.findById(actualApptId);
+        if (!appointment) {
+          console.warn(`⚠️ Appointment not found: ${actualApptId}`);
+          return;
+        }
+
+        socket.join(actualApptId);
+        console.log(`➡️ Socket ${socket.id} (user ${userId}) joined room: ${actualApptId}`);
+      } catch (error) {
+        console.error(`❌ Error in join-room for appointment ${actualApptId}:`, error);
       }
     });
 
     socket.on('invite-call', ({ userId, appointmentId }) => {
-      console.log(`📨 Inviting user ${userId} to appointment ${appointmentId}`);
-      io.to(userId).emit('call-invitation', { userId, appointmentId });
-    });
-
-    socket.on('accept-call', (appointmentId) => {
-      console.log(`📞 Call accepted for appointment ${appointmentId}`);
-      socket.to(appointmentId).emit('user-accepted-call');
-    });
-
-    socket.on('join-room', ({ actualApptId, userId }) => {
-      if (!actualApptId) {
-        console.warn(`⚠️ No appointmentId provided by ${socket.id}`);
+      if (!userId || !appointmentId) {
+        console.warn('⚠️ Missing userId or appointmentId in invite-call');
         return;
       }
-
-      socket.join(actualApptId);
-      console.log(`➡️ Socket ${socket.id} joined room: ${actualApptId}`);
-
-      if (userId) {
-        io.to(userId).emit('peer-joined-room', {
-          appointmentId: actualApptId,
-          joinedBy: socket.id
-        });
-      }
+      io.to(userId).emit('call-invitation', { userId, appointmentId });
+      console.log(`📨 Sending invitation to user ${userId} for appointment ${appointmentId}`);
     });
 
     socket.on('send-offer', ({ offer, appointmentId }) => {
-      socket.to(appointmentId).emit('receive-offer', offer);
+      console.log(`📤 Broadcasting offer to room ${appointmentId}`);
+      socket.to(appointmentId).emit('receive-offer', { offer, appointmentId });
     });
 
     socket.on('send-answer', (answer, appointmentId) => {
+      console.log('Server received answer:');
+      console.log('Server received appointmentId:', appointmentId);
       socket.to(appointmentId).emit('receive-answer', answer);
     });
 
-    socket.on('send-ice-candidate', (candidate, appointmentId) => {
-      socket.to(appointmentId).emit('receive-ice-candidate', candidate);
+    socket.on('send ice-candidate', (candidate, appointmentId) => {
+      console.log('Server received candidate:');
+      console.log('Server received appointmentId:', appointmentId);
+      socket.to(appointmentId).emit('receive ice-candidate', candidate);
     });
 
-    socket.on('decline-call', (appointmentId) => {
-      socket.to(appointmentId).emit('call-declined');
-    });
+
 
     socket.on('disconnect', () => {
-      console.log('❌ Socket disconnected:', socket.id);
+      console.log(`❌ Socket disconnected: ${socket.id}`);
     });
   });
 }

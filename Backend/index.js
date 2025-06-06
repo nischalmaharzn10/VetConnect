@@ -4,30 +4,46 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-
 import userRouter from './routes/userRoutes.js';
 import vetRouter from './routes/vetRoutes.js';
 import authRouter from './routes/authroutes.js';
 import appointmentRouter from './routes/appointmentRoutes.js';
 import petRouter from './routes/petRoutes.js';
-import paymentRouter from './routes/paymentRoutes.js';
+import adminRouter from './routes/adminRoutes.js';
 import { PORT, mongoDBURL } from './config.js';
-
 import setupSocket from './socket/VideoCallSocket.js';
+import esewaRouter from './routes/esewaRoutes.js';
+import emailRouter from './routes/emailRoutes.js';
 
 const app = express();
 const httpServer = createServer(app);
+// Add all allowed frontends here
+const allowedOrigins = [
+  'http://localhost:5173', // main client
+  'http://localhost:5174', // admin client
+  'http://localhost:5555'  // maybe if using another port/server
+];
+// Socket.io config
 const io = new Server(httpServer, {
-  cors: { origin: '*', methods: ['GET', 'POST'] }
+  cors: {
+    origin: allowedOrigins,
+    methods: ['GET', 'POST'],
+    credentials: true,
+  }
 });
 
 // Setup socket logic
 setupSocket(io);
+console.log('🔌 Socket.IO initialized');
 
 // Middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
-app.use(cors());
+// Express CORS middleware
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true
+}));
 app.use(helmet());
 
 // Routes
@@ -36,7 +52,11 @@ app.use('/api/vets', vetRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/appointments', appointmentRouter);
 app.use('/api/pets', petRouter);
-app.use('/api/payments', paymentRouter);
+app.use('/api/admin', adminRouter);
+app.use('/uploads', express.static('Uploads'));
+app.use('/api/payment/esewa', esewaRouter);
+app.use('/api/send-token',emailRouter);
+
 
 // Health check
 app.get('/health', (_, res) => res.status(200).send('OK'));
@@ -46,7 +66,7 @@ app.get('/', (_, res) => res.send('Welcome to VetConnect'));
 mongoose.connect(mongoDBURL)
   .then(() => {
     console.log('✅ MongoDB Connected');
-    httpServer.listen(PORT, () => console.log(`🚀 Listening on port ${PORT}`));
+    httpServer.listen(PORT, () => console.log(`🚀 Server listening on port ${PORT}`));
   })
   .catch(err => console.error('❌ DB connection error:', err));
 
@@ -60,3 +80,5 @@ process.on('SIGINT', async () => {
 // Global error logging
 process.on('unhandledRejection', err => console.error('🔴 Unhandled Promise Rejection:', err));
 process.on('uncaughtException', err => console.error('🔴 Uncaught Exception:', err));
+
+export { io };

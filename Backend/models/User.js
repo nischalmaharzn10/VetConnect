@@ -7,6 +7,14 @@ const UserSchema = new mongoose.Schema({
   phoneNumber: { type: String, required: true },
   password: { type: String, required: true },
   role: { type: String, default: "User" },
+  isApproved: {
+    type: Boolean,
+    default: false,
+  },
+  image: {
+    type: String,
+    default: "http://localhost:5555/uploads/default-avatar.png"
+  }
 });
 
 // Hash the password before saving (Only if it's not already hashed)

@@ -1,39 +1,93 @@
+import Admin from "../models/Admin.js";
+import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import User from "../models/User.js";  // Assuming this is the correct model
 
-// ✅ Register User (Admin or other roles)
-export const registerUser = async (req, res) => {
-  const { name, email, phoneNumber, role, password } = req.body;
+export const registerAdmin = async (req, res) => {
+  const { name, email, phoneNumber, password, role } = req.body;
 
   try {
-    // Check if the email already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
+    let admin = await Admin.findOne({ email });
+    if (admin) {
+      return res.status(400).json({ message: "Admin already exists" });
     }
 
-    // Hash password before storing
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create new user
-    const newUser = new User({
+    admin = new Admin({
       name,
       email,
       phoneNumber,
-      role,
-      password: hashedPassword,  // Store hashed password
+      password,
+      role: role || "admin",
     });
 
-    await newUser.save();
-    res.status(201).json({ message: "User registered successfully" });
+    await admin.save();
 
-  } catch (err) {
-    console.error("Error registering user:", err);
+    const payload = {
+      id: admin._id,
+      role: admin.role,
+    };
+
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1d" });
+
+    res.status(201).json({
+      success: true,
+      token,
+      admin: { id: admin._id, name, email, role: admin.role },
+    });
+  } catch (error) {
+    console.error("❌ Error registering admin:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// ✅ Example Admin Function
-export const adminControllerFunction = (req, res) => {
-  res.status(200).json({ message: "Admin function executed successfully" });
+export const loginAdmin = async (req, res) => {
+  const { email, password, role } = req.body;
+
+  try {
+    const admin = await Admin.findOne({ email });
+    if (!admin) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    if (role && role !== "admin") {
+      return res.status(400).json({ message: "Invalid role for admin login" });
+    }
+
+    const isMatch = await admin.matchPassword(password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    const payload = {
+      id: admin._id,
+      role: admin.role,
+    };
+
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1d" });
+
+    res.json({
+      success: true,
+      token,
+      admin: { id: admin._id, name: admin.name, email, role: admin.role },
+    });
+  } catch (error) {
+    console.error("❌ Error logging in admin:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const getAdminProfile = async (req, res) => {
+  try {
+    // Assuming you get admin ID from auth middleware or request param
+    const adminId = req.user.id; // or req.params.id
+
+    const admin = await Admin.findById(adminId);
+
+    if (!admin) {
+      return res.status(404).json({ message: 'Admin not found' });
+    }
+
+    res.json(admin);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
 };

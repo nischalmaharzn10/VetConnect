@@ -1,10 +1,12 @@
 import express from "express";
-import { authenticate, authorize } from "../middleware/authmiddleware.js";  // Import middleware
-import { adminControllerFunction } from "../controllers/adminController.js";  // Your controller
+import { registerAdmin, loginAdmin } from "../controllers/adminController.js";
+import { getAdminProfile } from "../controllers/adminController.js";
+import { protect } from "../middleware/authmiddleware.js";
 
-const router = express.Router();
+const AdminRouter = express.Router();
 
-// Admin specific route, access control with authentication and authorization
-router.get("/dashboard", authenticate, authorize(["Admin"]), adminControllerFunction);
+AdminRouter.post("/register", registerAdmin);
+AdminRouter.post("/login", loginAdmin);
+AdminRouter.get('/profile', protect, getAdminProfile);
 
-export default router;
+export default AdminRouter;

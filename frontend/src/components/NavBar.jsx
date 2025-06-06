@@ -30,18 +30,18 @@ const Navbar = () => {
 
       {/* Right Side - Links & User Authentication */}
       <div className="hidden md:flex items-center gap-6">
-        <button onClick={() => navigate("/")} className="text-white hover:text-blue-300">Home</button>
-        <button onClick={() => navigate("/about")} className="text-white hover:text-blue-300">About Us</button>
+        {/* <button onClick={() => navigate("/")} className="text-white hover:text-blue-300">Home</button>
+        <button onClick={() => navigate("/about")} className="text-white hover:text-blue-300">About Us</button> */}
 
         {user ? (
           // If user is logged in, show profile & logout
           <div className="flex items-center gap-4">
             <span className="font-medium">{user.name}</span>
-            <img 
+            {/* <img 
               src="/user-icon.png" // Update this to dynamic user profile if available
               alt="User Icon" 
               className="w-8 h-8 rounded-full"
-            />
+            /> */}
             <button onClick={handleLogout} className="bg-red-500 px-4 py-2 rounded-full hover:bg-red-600">
               Logout
             </button>
@@ -67,8 +67,8 @@ const Navbar = () => {
       {/* Mobile Menu */}
       {showMenu && (
         <div className="absolute top-16 right-6 bg-white shadow-md rounded-lg p-4 md:hidden">
-          <button onClick={() => navigate("/")} className="block text-blue-800 py-2">Home</button>
-          <button onClick={() => navigate("/about")} className="block text-blue-800 py-2">About Us</button>
+          {/* <button onClick={() => navigate("/")} className="block text-blue-800 py-2">Home</button>
+          <button onClick={() => navigate("/about")} className="block text-blue-800 py-2">About Us</button> */}
 
           {user ? (
             // If logged in, show profile & logout

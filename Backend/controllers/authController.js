@@ -1,5 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import nodemailer from "nodemailer";
+
 import User from "../models/User.js";
 import Vet from "../models/Veterinarian.js";
 import Admin from "../models/Admin.js";
@@ -36,28 +38,22 @@ export const login = async (req, res) => {
     console.log("✅ User Found:", user.email);
 
     // Validate password
-    if (!user.password || typeof user.password !== "string") {
-      console.log("🔴 Password is missing or not a string in the database");
-      return res.status(500).json({ message: "Server error: Password issue" });
-    }
-
-    // Compare the password from login request with the stored hashed password
     const isMatch = await bcrypt.compare(password, user.password);
-    // console.log("🔵 Password Match Status:", isMatch);
 
     if (!isMatch) {
       console.log("🔴 Password Mismatch - Email:", email);
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-// Generate JWT token
-const token = jwt.sign(
-  { id: user._id, email: user.email, role: user.role },
-  process.env.JWT_SECRET, // Use the environment variable for JWT_SECRET
-  { expiresIn: "3d" } // Token valid for 3 days
-);
+    // Generate JWT token (only if approved or not a vet)
+    // For vets, token will be generated regardless, but frontend can decide where to route.
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "3d" }
+    );
 
-
+    // Respond with token, user info, and approval status (if vet)
     res.json({
       token,
       user: {
@@ -66,9 +62,92 @@ const token = jwt.sign(
         email: user.email,
         role: user.role,
       },
+      approved: role === "vet" ? user.isApproved : true, // true for users/admins
     });
   } catch (error) {
     console.error("❌ Login Error:", error);
     res.status(500).json({ message: "Server error. Please try again later." });
+  }
+};
+// --------------------------------------------
+// Email verification token handling
+// --------------------------------------------
+
+// Temporary in-memory store for tokens (use Redis or DB for production)
+const tokenStore = new Map();
+
+// Generate 6-digit numeric token
+const generateToken = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+// Send verification token via email
+export const sendVerificationToken = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
+
+    // Generate a new token
+    const token = generateToken();
+
+    // Save the token with an expiry of 10 minutes
+    tokenStore.set(email, { token, expires: Date.now() + 10 * 60 * 1000 });
+
+    // Create Nodemailer transporter
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,      // Your email address
+        pass: process.env.EMAIL_PASSWORD,  // Your email password or app-specific password
+      },
+    });
+
+    // Email content
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Your Verification Code',
+      text: `Your verification code is: ${token}. It will expire in 10 minutes.`,
+    };
+
+    // Send the email
+    await transporter.sendMail(mailOptions);
+
+    return res.status(200).json({ success: true, message: "Verification code sent" });
+  } catch (error) {
+    console.error('Error sending verification code:', error);
+    return res.status(500).json({ success: false, message: "Failed to send verification code" });
+  }
+};
+
+// Helper function to verify token (export if needed elsewhere)
+export const verifyToken = (email, token) => {
+  const record = tokenStore.get(email);
+  if (!record) return false;
+
+  if (record.token === token && record.expires > Date.now()) {
+    tokenStore.delete(email); // Remove token after successful verification
+    return true;
+  }
+  return false;
+};
+
+// Handler for verifying token via API
+export const verifyTokenHandler = (req, res) => {
+  const { email, token } = req.body;
+
+  if (!email || !token) {
+    return res.status(400).json({ success: false, message: "Email and token are required" });
+  }
+
+  const isValid = verifyToken(email, token);
+
+  if (isValid) {
+    return res.status(200).json({ success: true, message: "Token verified successfully" });
+  } else {
+    return res.status(400).json({ success: false, message: "Invalid or expired token" });
   }
 };

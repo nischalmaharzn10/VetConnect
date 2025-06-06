@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import bcrypt from "bcryptjs"; // Import bcrypt for password hashing
+import bcrypt from "bcryptjs"; // For password hashing
 
 const VetSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -7,12 +7,31 @@ const VetSchema = new mongoose.Schema({
   phoneNumber: { type: String, required: true },
   password: { type: String, required: true },
   role: { type: String, default: "Vet" },
+  isApproved: { type: Boolean, default: false },
+
+  image: {
+    type: String,
+    default: "http://localhost:5555/uploads/default-avatar.png"
+  },
+
+  specialization: { type: String },
+  experience: { type: Number },
+  qualifications: { type: String },
+  state: { type: String },
+  district: { type: String },
+
+  // ✅ Certificate field (e.g. URL or file path)
+  certificate: {
+    type: String,
+    default: null,
+  },
 });
 
-// Pre-save middleware to hash the password before saving the vet
+
+// Hash password before saving
 VetSchema.pre("save", async function (next) {
   if (this.isModified("password")) {
-    this.password = await bcrypt.hash(this.password, 10); // Hash the password
+    this.password = await bcrypt.hash(this.password, 10);
   }
   next();
 });

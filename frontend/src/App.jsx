@@ -22,6 +22,13 @@ import ClientAppHistory from './pages/ClientAppHistory';
 import ClientPrescriptionForm from './pages/ClientAppComplete';
 import VideoCall from './pages/VideoCall';
 import ClientVideoCall from './pages/ClientVideoCall';
+import PaymentProcessing from './pages/PaymentProcessing';
+import PaymentSuccess from './pages//PaymentSuccess';
+import PaymentFailure from './pages/PaymentFailure';
+import Settings from './pages/Settings';
+import VetUpdateProfile from './pages/VetUpdateProfile';
+import WaitingPage from './pages/WaitingPage';
+
 
 const App = () => {
   return (
@@ -49,6 +56,12 @@ const App = () => {
           <Route path="/client/appointment-form/:appointmentId" element={<ClientPrescriptionForm />} />
           <Route path="/video-call/:appointmentId" element={<VideoCall />} />
           <Route path="/client/video-call/:appointmentId" element={<ClientVideoCall />} />
+          <Route path="/payment/process/:id" element={<PaymentProcessing />} />
+          <Route path="/payment-success" element={<PaymentSuccess />} />
+          <Route path="/payment-failure" element={<PaymentFailure />} />       
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/vet/update-profile" element={<VetUpdateProfile/>}/>
+          <Route path="/waitingpage" element={<WaitingPage/>}/>
         </Routes>
       </div>
       <Footer />

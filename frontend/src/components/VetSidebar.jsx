@@ -37,12 +37,12 @@ const VetSidebar = () => {
         </NavLink>
 
         <NavLink
-          to="/video-call/:appointmentId"
+          to="/vet/update-profile"
           className={({ isActive }) =>
             `px-4 py-2 rounded-md transition ${isActive ? "bg-blue-600" : "hover:bg-blue-700"}`
           }
         >
-          Online consultation
+          Settings
         </NavLink>
 
       </nav>

@@ -11,21 +11,16 @@ import {
 } from "lucide-react";
 
 const navItems = [
-  { name: "Dashboard", icon: <Home size={18} />, path: "/" },
-  { name: "Users", icon: <Users size={18} />, path: "/users" },
-  { name: "Vets", icon: <Stethoscope size={18} />, path: "/vets" },
-  { name: "Appointments", icon: <Calendar size={18} />, path: "/appointments" },
-  { name: "Revenue", icon: <DollarSign size={18} />, path: "/revenue" }
+  { name: "Dashboard", icon: <Home size={18} />, path: "/Admin/dashboard" },
+  { name: "Users", icon: <Users size={18} />, path: "Admin/users" },
+  { name: "Vets", icon: <Stethoscope size={18} />, path: "Admin/vets" },
+  { name: "Appointments", icon: <Calendar size={18} />, path: "Admin/appointments" },
+  { name: "Revenue", icon: <DollarSign size={18} />, path: "Admin/revenue" }
 ];
 
 const Sidebar = () => {
-  const navigate = useNavigate();
 
-  const handleLogout = () => {
-    // TODO: clear auth tokens or context here
-    // localStorage.removeItem('admin_token');
-    navigate("/login");
-  };
+
 
   return (
     <aside className="w-64 bg-white border-r h-full shadow-sm flex flex-col">
@@ -47,14 +42,7 @@ const Sidebar = () => {
         ))}
       </nav>
 
-      {/* Logout button */}
-      <button
-        onClick={handleLogout}
-        className="m-4 flex items-center gap-3 px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 transition"
-      >
-        <LogOut size={18} />
-        Logout
-      </button>
+      
     </aside>
   );
 };

@@ -45,14 +45,14 @@ const Sidebar = () => {
           Appointment History
         </NavLink>
 
-        <NavLink
+        {/* <NavLink
           to="/client/video-call/:appointmentId"
           className={({ isActive }) =>
             `px-4 py-2 rounded-md transition ${isActive ? "bg-blue-600" : "hover:bg-blue-700"}`
           }
         >
           Consultation Page
-        </NavLink>
+        </NavLink> */}
 
         <NavLink
           to="/settings"
